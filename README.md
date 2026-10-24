@@ -94,7 +94,7 @@ Built-in themes: `default`, `catppuccin-mocha`, `catppuccin-macchiato`, `catppuc
 
 Press `T` or run `:theme <name>` to switch. The picker shows a live preview.
 
-## Plugins
+## Plugins (Not tested yet)
 
 Lua plugins go in `~/.config/ranger-rs/plugins/*.lua`. See `plugins/example.lua`.
 
