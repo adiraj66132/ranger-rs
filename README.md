@@ -5,7 +5,7 @@ A fast, Vim-powered terminal file manager written in Rust.
 ranger-rs is a Rust reimplementation of [ranger](https://github.com/ranger/ranger), the Vim-powered console file manager. It keeps ranger's keybindings and ideas but is rebuilt from scratch in Rust — no Python at startup.
 
 Inspired by:
-- **ranger** — the original Python file manager (kept at `/home/adiraj/git/ranger` for reference)
+- **ranger** — the original Python file manager
 - **yazi** — the floating info panel (`Tab`)
 
 ## Get started
