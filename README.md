@@ -58,8 +58,8 @@ too.
 Opening a text file (`l` or `Enter`) suspends the UI and launches the first
 editor found on `PATH`, in this order:
 
-1. `vim`
-2. `nvim`
+1. `nvim`
+2. `vim`
 3. `vi`
 4. `nano`
 5. `emacs` (including Doom Emacs)

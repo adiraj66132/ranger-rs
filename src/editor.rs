@@ -33,8 +33,8 @@ impl Editor {
 }
 
 const CANDIDATES: [(&str, Kind); 5] = [
-    ("vim", Kind::Vim),
     ("nvim", Kind::Nvim),
+    ("vim", Kind::Vim),
     ("vi", Kind::Vi),
     ("nano", Kind::Nano),
     ("emacs", Kind::Emacs),
@@ -88,24 +88,24 @@ mod tests {
     }
 
     #[test]
-    fn priority_is_vim_then_nvim_then_vi_then_nano_then_emacs() {
+    fn priority_is_nvim_then_vim_then_vi_then_nano_then_emacs() {
         let dir = temp_dir("priority");
         make_executable(&dir.join("nano"));
         make_executable(&dir.join("vi"));
-        make_executable(&dir.join("nvim"));
         make_executable(&dir.join("vim"));
-        assert_eq!(
-            detect_in(std::slice::from_ref(&dir)).unwrap().kind,
-            Kind::Vim
-        );
-
-        std::fs::remove_file(dir.join("vim")).unwrap();
+        make_executable(&dir.join("nvim"));
         assert_eq!(
             detect_in(std::slice::from_ref(&dir)).unwrap().kind,
             Kind::Nvim
         );
 
         std::fs::remove_file(dir.join("nvim")).unwrap();
+        assert_eq!(
+            detect_in(std::slice::from_ref(&dir)).unwrap().kind,
+            Kind::Vim
+        );
+
+        std::fs::remove_file(dir.join("vim")).unwrap();
         assert_eq!(
             detect_in(std::slice::from_ref(&dir)).unwrap().kind,
             Kind::Vi
