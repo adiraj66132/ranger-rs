@@ -26,6 +26,18 @@ pub fn request(
     });
 }
 
+/// Cheap text sniff used to decide between the editor and the system opener.
+pub fn looks_text(path: &Path) -> bool {
+    let Ok(file) = File::open(path) else {
+        return false;
+    };
+    let mut sample = Vec::with_capacity(8192);
+    if file.take(8192).read_to_end(&mut sample).is_err() {
+        return false;
+    }
+    !sample.contains(&0)
+}
+
 fn generate(path: &Path, config: &Config) -> Vec<String> {
     let Ok(meta) = std::fs::metadata(path) else {
         return vec!["(unreadable)".into()];
@@ -205,5 +217,23 @@ mod tests {
     fn previews_never_emit_escape_codes() {
         assert_eq!(sanitize("\u{1b}[31mred"), "[31mred");
         assert_eq!(sanitize("a\tb"), "a    b");
+    }
+
+    #[test]
+    fn text_sniff_separates_text_from_binary() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("ranger-rs-sniff-{stamp}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let text = dir.join("text.txt");
+        let binary = dir.join("binary.bin");
+        std::fs::write(&text, "hello\nworld\n").unwrap();
+        std::fs::write(&binary, b"abc\0def").unwrap();
+        assert!(looks_text(&text));
+        assert!(!looks_text(&binary));
+        std::fs::remove_dir_all(dir).unwrap();
     }
 }

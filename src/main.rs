@@ -1,5 +1,6 @@
 mod app;
 mod config;
+mod editor;
 mod fs;
 mod plugin;
 mod preview;
@@ -8,6 +9,7 @@ mod ui;
 
 use app::App;
 use config::Config;
+use crossterm::cursor::{Hide, Show};
 use crossterm::event::{self, Event};
 use crossterm::execute;
 use crossterm::terminal::{
@@ -17,6 +19,7 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use std::io::{self, Stdout};
 use std::path::PathBuf;
+use std::process::Command;
 use std::time::Duration;
 
 struct Tui {
@@ -27,16 +30,27 @@ impl Tui {
     fn new() -> io::Result<Self> {
         enable_raw_mode()?;
         let mut stdout = io::stdout();
-        execute!(stdout, EnterAlternateScreen)?;
+        execute!(stdout, EnterAlternateScreen, Hide)?;
         let terminal = Terminal::new(CrosstermBackend::new(stdout))?;
         Ok(Self { terminal })
+    }
+
+    fn suspend(&mut self) -> io::Result<()> {
+        disable_raw_mode()?;
+        execute!(io::stdout(), LeaveAlternateScreen, Show)
+    }
+
+    fn resume(&mut self) -> io::Result<()> {
+        enable_raw_mode()?;
+        execute!(io::stdout(), EnterAlternateScreen, Hide)?;
+        self.terminal.clear()
     }
 }
 
 impl Drop for Tui {
     fn drop(&mut self) {
         let _ = disable_raw_mode();
-        let _ = execute!(io::stdout(), LeaveAlternateScreen, crossterm::cursor::Show);
+        let _ = execute!(io::stdout(), LeaveAlternateScreen, Show);
     }
 }
 
@@ -88,6 +102,19 @@ fn main() -> io::Result<()> {
                 app.handle_key(key);
             }
         }
+
+        if let Some(launch) = app.take_editor_launch() {
+            tui.suspend()?;
+            let result = Command::new(launch.editor.program)
+                .arg("--")
+                .arg(&launch.path)
+                .status();
+            tui.resume()?;
+            let error = result.err().map(|err| err.to_string());
+            app.refresh(None);
+            app.editor_finished(launch.editor, error);
+        }
+
         app.drain_preview();
     }
 

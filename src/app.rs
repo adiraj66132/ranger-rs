@@ -1,4 +1,5 @@
 use crate::config::{self, Config};
+use crate::editor;
 use crate::fs::{self, Entry};
 use crate::plugin::{Action, PluginHost};
 use crate::preview::{self, PreviewMessage};
@@ -16,6 +17,11 @@ pub enum Mode {
     ThemePicker,
 }
 
+pub struct EditorLaunch {
+    pub editor: editor::Editor,
+    pub path: PathBuf,
+}
+
 pub struct App {
     pub cwd: PathBuf,
     pub entries: Vec<Entry>,
@@ -31,6 +37,9 @@ pub struct App {
     pub theme: &'static Theme,
     pub theme_choice: usize,
     theme_original: Option<&'static Theme>,
+    editor: Option<editor::Editor>,
+    editor_checked: bool,
+    editor_launch: Option<EditorLaunch>,
     pub should_quit: bool,
     preview_generation: u64,
     preview_tx: Sender<PreviewMessage>,
@@ -76,6 +85,9 @@ impl App {
             theme,
             theme_choice: 0,
             theme_original: None,
+            editor: None,
+            editor_checked: false,
+            editor_launch: None,
             should_quit: false,
             preview_generation: 0,
             preview_tx,
@@ -245,9 +257,38 @@ impl App {
         };
         if entry.is_dir {
             self.change_dir(entry.path);
+        } else if preview::looks_text(&entry.path) {
+            self.open_in_editor(entry.path);
         } else {
             self.open_path(&entry.path);
         }
+    }
+
+    fn open_in_editor(&mut self, path: PathBuf) {
+        if !self.editor_checked {
+            self.editor = editor::detect();
+            self.editor_checked = true;
+        }
+        let Some(editor) = self.editor else {
+            self.status = "No editor found. Install vim or nvim (or nano).".into();
+            return;
+        };
+        self.editor_launch = Some(EditorLaunch { editor, path });
+    }
+
+    pub fn take_editor_launch(&mut self) -> Option<EditorLaunch> {
+        self.editor_launch.take()
+    }
+
+    pub fn editor_finished(&mut self, editor: editor::Editor, error: Option<String>) {
+        self.status = match error {
+            Some(err) => format!("{}: {err}", editor.program),
+            None if editor.is_fallback() => format!(
+                "Opened with {}. Install vim or nvim for the native experience.",
+                editor.display_name()
+            ),
+            None => format!("Opened with {}", editor.display_name()),
+        };
     }
 
     fn open_path(&mut self, path: &std::path::Path) {

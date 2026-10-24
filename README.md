@@ -36,7 +36,7 @@ install -m755 target/release/ranger-rs ~/.local/bin/ranger-rs
 | `Ctrl-d` / `Ctrl-u` | Move 10 down / up |
 | `g` / `G` | Top / bottom |
 | `h` / `l` | Parent directory / enter directory or open file |
-| `Enter` | Enter directory or open file |
+| `Enter` | Enter directory or open file (editor for text files) |
 | `.` | Toggle hidden files |
 | `r` | Reload directory |
 | `~` | Go home |
@@ -52,6 +52,21 @@ install -m755 target/release/ranger-rs ~/.local/bin/ranger-rs
 `:hidden`, `:pwd`, `:help`, `:theme [name]`, `:themes`, plus any command
 registered by a plugin. `:theme` with no name opens the picker; `/theme` works
 too.
+
+## Editors
+
+Opening a text file (`l` or `Enter`) suspends the UI and launches the first
+editor found on `PATH`, in this order:
+
+1. `vim`
+2. `nvim`
+3. `vi`
+4. `nano`
+5. `emacs` (including Doom Emacs)
+
+When only `nano` or `emacs` is available, the status line suggests installing
+vim or nvim for the native experience. Binary and media files still go through
+`xdg-open` (or `open` on macOS). Detection is cached after the first file open.
 
 ## Config
 
