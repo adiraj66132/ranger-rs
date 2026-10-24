@@ -1,6 +1,7 @@
 use crate::config::{self, Config};
 use crate::editor;
 use crate::fs::{self, Entry};
+use crate::info;
 use crate::plugin::{Action, PluginHost};
 use crate::preview::{self, PreviewMessage};
 use crate::theme::{self, Theme};
@@ -29,6 +30,8 @@ pub struct App {
     pub parent_entries: Vec<Entry>,
     pub parent_selected: Option<usize>,
     pub preview_lines: Vec<String>,
+    pub show_info: bool,
+    pub info_lines: Vec<(String, String)>,
     pub mode: Mode,
     pub input: String,
     pub prompt: char,
@@ -77,6 +80,8 @@ impl App {
             parent_entries: Vec::new(),
             parent_selected: None,
             preview_lines: Vec::new(),
+            show_info: false,
+            info_lines: Vec::new(),
             mode: Mode::Normal,
             input: String::new(),
             prompt: ':',
@@ -133,6 +138,7 @@ impl App {
         }
         self.refresh_parent();
         self.request_preview();
+        self.refresh_info();
     }
 
     fn refresh_parent(&mut self) {
@@ -171,6 +177,23 @@ impl App {
         }
     }
 
+    fn refresh_info(&mut self) {
+        if !self.show_info {
+            return;
+        }
+        self.info_lines = match self.entries.get(self.selected) {
+            Some(entry) => info::describe(entry),
+            None => Vec::new(),
+        };
+    }
+
+    fn toggle_info(&mut self) {
+        self.show_info = !self.show_info;
+        if self.show_info {
+            self.refresh_info();
+        }
+    }
+
     fn sync_cwd(&self) {
         *self.shared_cwd.lock().unwrap() = self.cwd.clone();
     }
@@ -187,6 +210,7 @@ impl App {
         if index != self.selected {
             self.selected = index;
             self.request_preview();
+            self.refresh_info();
         }
     }
 
@@ -553,6 +577,7 @@ impl App {
             KeyCode::Char('h') | KeyCode::Left => self.go_parent(),
             KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => self.open_selected(),
             KeyCode::Char('.') => self.toggle_hidden(),
+            KeyCode::Char('i') => self.toggle_info(),
             KeyCode::Char('r') => self.refresh(None),
             KeyCode::Char('~') => {
                 if let Ok(home) = std::env::var("HOME") {
@@ -590,4 +615,4 @@ impl App {
 }
 
 pub const HINTS: &str =
-    "j/k move  h/l dirs  g/G top/bottom  enter open  . hidden  r reload  T theme  : command  q quit";
+    "j/k move  h/l dirs  g/G top/bottom  enter open  . hidden  i info  r reload  T theme  : command  q quit";

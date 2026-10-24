@@ -10,6 +10,7 @@ crossterm = "0.28"
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
 mlua = { version = "0.9", features = ["lua54", "vendored"] }
+mime_guess = "2"
 
 [profile.release]
 opt-level = 3

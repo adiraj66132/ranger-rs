@@ -2,6 +2,7 @@ mod app;
 mod config;
 mod editor;
 mod fs;
+mod info;
 mod plugin;
 mod preview;
 mod theme;
