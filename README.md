@@ -37,7 +37,7 @@ install -m755 target/release/ranger-rs ~/.local/bin/ranger-rs
 | `g` / `G` | Top / bottom |
 | `h` / `l` | Parent directory / enter directory or open file |
 | `Enter` | Enter directory or open file (editor for text files) |
-| `i` | Info panel (size, owner, MIME type, timestamps) |
+| `Tab` | Info panel floating popup (size, owner, MIME type, timestamps) |
 | `.` | Toggle hidden files |
 | `r` | Reload directory |
 | `~` | Go home |

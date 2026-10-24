@@ -40,8 +40,9 @@ pub fn draw(frame: &mut Frame, app: &App, state: &mut UiState) {
     draw_command(frame, app, rows[2]);
     if app.mode == Mode::ThemePicker {
         draw_theme_picker(frame, app, state);
-    } else if app.show_info {
-        draw_info(frame, app, cols[2]);
+    }
+    if app.show_info {
+        draw_info_popup(frame, app);
     }
 }
 
@@ -92,7 +93,20 @@ fn draw_current(frame: &mut Frame, app: &App, state: &mut UiState, area: ratatui
     frame.render_stateful_widget(list, area, &mut state.current);
 }
 
-fn draw_info(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
+fn draw_info_popup(frame: &mut Frame, app: &App) {
+    let area = frame.area();
+    let width = area.width.saturating_sub(4).clamp(20, 60).min(area.width);
+    let max_height = area.height.saturating_sub(4).max(5);
+    let height = app.info_lines.len().max(1).min(max_height as usize) as u16 + 2;
+    let height = height.min(max_height);
+    let popup = Rect::new(
+        area.x + area.width.saturating_sub(width) / 2,
+        area.y + area.height.saturating_sub(height) / 2,
+        width,
+        height,
+    );
+    frame.render_widget(Clear, popup);
+
     let lines: Vec<Line> = app
         .info_lines
         .iter()
@@ -114,8 +128,8 @@ fn draw_info(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
         .get(app.selected)
         .map(|entry| clean(&entry.name))
         .unwrap_or_else(|| "info".into());
-    let paragraph = Paragraph::new(lines).block(block(&format!("{title} (info)"), app.theme));
-    frame.render_widget(paragraph, area);
+    let paragraph = Paragraph::new(lines).block(block(&format!("{title}  Tab close"), app.theme));
+    frame.render_widget(paragraph, popup);
 }
 
 fn draw_preview(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {

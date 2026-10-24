@@ -577,7 +577,7 @@ impl App {
             KeyCode::Char('h') | KeyCode::Left => self.go_parent(),
             KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => self.open_selected(),
             KeyCode::Char('.') => self.toggle_hidden(),
-            KeyCode::Char('i') => self.toggle_info(),
+            KeyCode::Tab => self.toggle_info(),
             KeyCode::Char('r') => self.refresh(None),
             KeyCode::Char('~') => {
                 if let Ok(home) = std::env::var("HOME") {
