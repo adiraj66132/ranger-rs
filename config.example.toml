@@ -1,0 +1,19 @@
+# Copy to ~/.config/ranger-rs/config.toml
+
+show_hidden = false
+preview_lines = 200
+preview_bytes = 65536
+
+# Optional external previewers. Rules are checked top to bottom; the first
+# matching rule wins. The selected path is available as $RANGER_RS_PATH.
+# If a command fails or times out, the built-in preview is used instead.
+#
+# [[scope]]
+# match = "*.pdf"
+# command = 'pdftotext -l 2 "$RANGER_RS_PATH" -'
+# timeout_ms = 1500
+#
+# [[scope]]
+# match = "*.zip"
+# command = 'unzip -l "$RANGER_RS_PATH"'
+# timeout_ms = 1500

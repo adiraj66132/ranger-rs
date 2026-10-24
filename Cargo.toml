@@ -1,0 +1,18 @@
+[package]
+name = "ranger-rs"
+version = "0.1.0"
+edition = "2021"
+description = "A fast, Vim-powered terminal file manager in Rust"
+
+[dependencies]
+ratatui = "0.29"
+crossterm = "0.28"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+mlua = { version = "0.9", features = ["lua54", "vendored"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true

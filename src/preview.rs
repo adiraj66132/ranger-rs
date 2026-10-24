@@ -1,0 +1,209 @@
+use crate::config::{Config, ScopeRule};
+use crate::fs;
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
+use std::process::{Command, Stdio};
+use std::sync::mpsc::Sender;
+use std::thread;
+use std::time::{Duration, Instant};
+
+pub struct PreviewMessage {
+    pub generation: u64,
+    pub lines: Vec<String>,
+}
+
+pub fn request(
+    generation: u64,
+    path: std::path::PathBuf,
+    config: Config,
+    tx: Sender<PreviewMessage>,
+) {
+    // shortcut: one thread per selection change; debounce if huge trees make this expensive.
+    thread::spawn(move || {
+        let lines = generate(&path, &config);
+        let _ = tx.send(PreviewMessage { generation, lines });
+    });
+}
+
+fn generate(path: &Path, config: &Config) -> Vec<String> {
+    let Ok(meta) = std::fs::metadata(path) else {
+        return vec!["(unreadable)".into()];
+    };
+    if meta.is_dir() {
+        return directory_preview(path, config);
+    }
+
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy())
+        .unwrap_or_default();
+    for rule in &config.scope {
+        if !glob_match(&rule.pattern, &name) {
+            continue;
+        }
+        match run_scope(rule, path, config.preview_lines) {
+            Ok(lines) if !lines.is_empty() => return lines,
+            Ok(_) => break,
+            Err(err) => {
+                let mut lines = vec![format!("[scope: {err}]")];
+                lines.extend(file_preview(path, config));
+                return lines;
+            }
+        }
+    }
+    file_preview(path, config)
+}
+
+fn directory_preview(path: &Path, config: &Config) -> Vec<String> {
+    let entries = match fs::read_dir(path, config.show_hidden) {
+        Ok(entries) => entries,
+        Err(err) => return vec![format!("(cannot read directory: {err})")],
+    };
+    let mut lines = Vec::with_capacity(entries.len().min(config.preview_lines));
+    for entry in entries.iter().take(config.preview_lines) {
+        lines.push(if entry.is_dir {
+            format!("{}/", entry.name)
+        } else {
+            entry.name.clone()
+        });
+    }
+    if entries.len() > config.preview_lines {
+        lines.push(format!("... {} more", entries.len() - config.preview_lines));
+    }
+    if lines.is_empty() {
+        lines.push("(empty directory)".into());
+    }
+    lines
+}
+
+fn file_preview(path: &Path, config: &Config) -> Vec<String> {
+    let Ok(file) = File::open(path) else {
+        return vec!["(unreadable)".into()];
+    };
+    let mut data = Vec::with_capacity(config.preview_bytes.min(64 * 1024));
+    if file
+        .take(config.preview_bytes as u64)
+        .read_to_end(&mut data)
+        .is_err()
+    {
+        return vec!["(unreadable)".into()];
+    }
+    if data.is_empty() {
+        return vec!["(empty file)".into()];
+    }
+    if data.contains(&0) {
+        return vec!["(binary file)".into()];
+    }
+    let text = String::from_utf8_lossy(&data);
+    let mut lines: Vec<String> = text
+        .lines()
+        .take(config.preview_lines)
+        .map(sanitize)
+        .collect();
+    if lines.is_empty() {
+        lines.push("(empty file)".into());
+    }
+    lines
+}
+
+fn run_scope(rule: &ScopeRule, path: &Path, max_lines: usize) -> Result<Vec<String>, String> {
+    let mut child = Command::new("sh")
+        .arg("-c")
+        .arg(&rule.command)
+        .env("RANGER_RS_PATH", path)
+        .current_dir(path.parent().unwrap_or_else(|| Path::new(".")))
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|err| err.to_string())?;
+
+    let mut stdout = child.stdout.take().ok_or("no stdout")?;
+    let reader = thread::spawn(move || {
+        let mut data = Vec::new();
+        let _ = stdout.read_to_end(&mut data);
+        data
+    });
+
+    let timeout = Duration::from_millis(rule.timeout_ms.max(50));
+    let deadline = Instant::now() + timeout;
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) if Instant::now() < deadline => {
+                thread::sleep(Duration::from_millis(10));
+            }
+            Ok(None) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!("timed out after {}ms", rule.timeout_ms));
+            }
+            Err(err) => return Err(err.to_string()),
+        }
+    }
+
+    let data = reader.join().unwrap_or_default();
+    let text = String::from_utf8_lossy(&data);
+    let lines: Vec<String> = text.lines().take(max_lines).map(sanitize).collect();
+    Ok(lines)
+}
+
+/// Keep terminal control sequences out of the preview pane.
+fn sanitize(line: &str) -> String {
+    line.replace('\t', "    ")
+        .chars()
+        .filter(|c| !c.is_control())
+        .take(500)
+        .collect()
+}
+
+fn glob_match(pattern: &str, name: &str) -> bool {
+    let pattern: Vec<char> = pattern.chars().collect();
+    let name: Vec<char> = name.chars().collect();
+    let (mut pi, mut ni) = (0, 0);
+    let mut star = None;
+    let mut resumed = 0;
+
+    while ni < name.len() {
+        if pi < pattern.len() && (pattern[pi] == '?' || pattern[pi] == name[ni]) {
+            pi += 1;
+            ni += 1;
+        } else if pi < pattern.len() && pattern[pi] == '*' {
+            star = Some(pi);
+            pi += 1;
+            resumed = ni;
+        } else if let Some(pos) = star {
+            pi = pos + 1;
+            resumed += 1;
+            ni = resumed;
+        } else {
+            return false;
+        }
+    }
+    while pi < pattern.len() && pattern[pi] == '*' {
+        pi += 1;
+    }
+    pi == pattern.len()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn globs_match_names() {
+        assert!(glob_match("*.pdf", "manual.pdf"));
+        assert!(glob_match("*.pdf", ".pdf"));
+        assert!(!glob_match("*.pdf", "manual.txt"));
+        assert!(glob_match("README?md", "README.md"));
+        assert!(glob_match("*", "anything"));
+        assert!(glob_match("a*b*c", "axxbyyc"));
+    }
+
+    #[test]
+    fn previews_never_emit_escape_codes() {
+        assert_eq!(sanitize("\u{1b}[31mred"), "[31mred");
+        assert_eq!(sanitize("a\tb"), "a    b");
+    }
+}
