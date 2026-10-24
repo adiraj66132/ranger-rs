@@ -253,6 +253,10 @@ pub fn default_theme() -> &'static Theme {
     &CATPPUCCIN_MOCHA
 }
 
+pub fn all() -> &'static [&'static Theme] {
+    THEMES
+}
+
 pub fn names() -> Vec<&'static str> {
     THEMES.iter().map(|theme| theme.name).collect()
 }

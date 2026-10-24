@@ -1,16 +1,17 @@
 use crate::app::{App, Mode, HINTS};
 use crate::fs::{self, Entry};
-use crate::theme::Theme;
-use ratatui::layout::{Constraint, Direction, Layout};
+use crate::theme::{self, Theme};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph};
+use ratatui::widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph};
 use ratatui::Frame;
 
 #[derive(Default)]
 pub struct UiState {
     current: ListState,
     parent: ListState,
+    theme: ListState,
 }
 
 pub fn draw(frame: &mut Frame, app: &App, state: &mut UiState) {
@@ -37,6 +38,9 @@ pub fn draw(frame: &mut Frame, app: &App, state: &mut UiState) {
     draw_preview(frame, app, cols[2]);
     draw_status(frame, app, rows[1]);
     draw_command(frame, app, rows[2]);
+    if app.mode == Mode::ThemePicker {
+        draw_theme_picker(frame, app, state);
+    }
 }
 
 fn draw_parent(frame: &mut Frame, app: &App, state: &mut UiState, area: ratatui::layout::Rect) {
@@ -132,7 +136,7 @@ fn draw_status(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
 
 fn draw_command(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
     if app.mode == Mode::Command {
-        let text = format!(":{}", clean(&app.input));
+        let text = format!("{}{}", app.prompt, clean(&app.input));
         frame.render_widget(
             Paragraph::new(text).style(Style::default().bg(app.theme.bg).fg(app.theme.fg)),
             area,
@@ -150,6 +154,47 @@ fn draw_command(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
             Paragraph::new(HINTS).style(Style::default().bg(app.theme.bg).fg(app.theme.muted));
         frame.render_widget(paragraph, area);
     }
+}
+
+fn draw_theme_picker(frame: &mut Frame, app: &App, state: &mut UiState) {
+    let area = frame.area();
+    let width = area.width.saturating_sub(4).clamp(10, 34).min(area.width);
+    let height = (theme::all().len() as u16 + 2)
+        .min(area.height.saturating_sub(2).max(3))
+        .min(area.height);
+    let popup = Rect::new(
+        area.x + area.width.saturating_sub(width) / 2,
+        area.y + area.height.saturating_sub(height) / 2,
+        width,
+        height,
+    );
+    frame.render_widget(Clear, popup);
+
+    let items: Vec<ListItem> = theme::all()
+        .iter()
+        .map(|theme| {
+            ListItem::new(Line::from(Span::styled(
+                format!(" {}", theme.name),
+                Style::default().fg(theme.accent).bg(theme.bg),
+            )))
+        })
+        .collect();
+    state.theme.select(Some(app.theme_choice));
+    let list = List::new(items)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .style(Style::default().bg(app.theme.bg).fg(app.theme.fg))
+                .border_style(Style::default().fg(app.theme.accent))
+                .title(Line::from(Span::styled(
+                    " Themes  Enter save  Esc cancel ",
+                    Style::default().fg(app.theme.accent),
+                ))),
+        )
+        .style(Style::default().bg(app.theme.bg))
+        .highlight_style(selection_style(app.theme))
+        .highlight_symbol("> ");
+    frame.render_stateful_widget(list, popup, &mut state.theme);
 }
 
 fn block(title: &str, theme: &Theme) -> Block<'static> {

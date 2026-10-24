@@ -41,6 +41,8 @@ install -m755 target/release/ranger-rs ~/.local/bin/ranger-rs
 | `r` | Reload directory |
 | `~` | Go home |
 | `:` | Command line |
+| `/` | Command line (so `/theme` works) |
+| `T` | Theme picker |
 | `?` | Show key hints |
 | `q` | Quit |
 
@@ -48,7 +50,8 @@ install -m755 target/release/ranger-rs ~/.local/bin/ranger-rs
 
 `:q`, `:cd [path]`, `:mkdir <path>`, `:touch <path>`, `:open`, `:reload`,
 `:hidden`, `:pwd`, `:help`, `:theme [name]`, `:themes`, plus any command
-registered by a plugin.
+registered by a plugin. `:theme` with no name opens the picker; `/theme` works
+too.
 
 ## Config
 
@@ -76,9 +79,12 @@ Built in: `default`, `catppuccin-mocha`, `catppuccin-macchiato`,
 `catppuccin-frappe`, `catppuccin-latte`, `tokyo-night`, `tokyo-night-storm`,
 `tokyo-night-day`, `nord`, `dracula`, `gruvbox`.
 
-Pick one in the config, or switch for the current session with `:theme <name>`.
-`:theme` shows the active theme and `:themes` lists the built-ins.
+Press `T` (or run `/theme`) to open the theme picker. `j`/`k` preview each
+theme live, `Enter` saves the choice to `config.toml`, and `Esc` restores the
+previous theme. `:theme <name>` jumps straight to a theme and saves it;
+`:themes` lists the built-ins.
 
+The picker preserves comments and every other setting in `config.toml`.
 Themes are static compile-time palettes resolved once at startup. Rendering
 reads the resolved `Style`s directly, so switching themes adds no per-frame
 lookups or allocation.

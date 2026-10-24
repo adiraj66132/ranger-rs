@@ -13,6 +13,7 @@ use std::sync::{Arc, Mutex};
 pub enum Mode {
     Normal,
     Command,
+    ThemePicker,
 }
 
 pub struct App {
@@ -24,9 +25,12 @@ pub struct App {
     pub preview_lines: Vec<String>,
     pub mode: Mode,
     pub input: String,
+    pub prompt: char,
     pub status: String,
     pub config: Config,
     pub theme: &'static Theme,
+    pub theme_choice: usize,
+    theme_original: Option<&'static Theme>,
     pub should_quit: bool,
     preview_generation: u64,
     preview_tx: Sender<PreviewMessage>,
@@ -66,9 +70,12 @@ impl App {
             preview_lines: Vec::new(),
             mode: Mode::Normal,
             input: String::new(),
+            prompt: ':',
             status: String::new(),
             config,
             theme,
+            theme_choice: 0,
+            theme_original: None,
             should_quit: false,
             preview_generation: 0,
             preview_tx,
@@ -342,16 +349,67 @@ impl App {
 
     fn set_theme(&mut self, name: &str) {
         if name.is_empty() {
-            self.status = format!("theme: {}", self.theme.name);
+            self.open_theme_picker();
             return;
         }
         match theme::get(name) {
             Some(theme) => {
                 self.theme = theme;
-                self.status = format!("theme: {}", theme.name);
+                self.config.theme = theme.name.into();
+                self.status = match config::save_theme(theme.name) {
+                    Ok(()) => format!("theme: {} (saved)", theme.name),
+                    Err(err) => format!("theme: {} (not saved: {err})", theme.name),
+                };
             }
             None => self.status = format!("unknown theme: {name}"),
         }
+    }
+
+    fn open_theme_picker(&mut self) {
+        self.theme_choice = theme::all()
+            .iter()
+            .position(|theme| theme.name == self.theme.name)
+            .unwrap_or(0);
+        self.theme_original = Some(self.theme);
+        self.mode = Mode::ThemePicker;
+        self.input.clear();
+        self.status.clear();
+    }
+
+    fn move_theme_choice(&mut self, delta: isize) {
+        let themes = theme::all();
+        if themes.is_empty() {
+            return;
+        }
+        let index = (self.theme_choice as isize + delta).rem_euclid(themes.len() as isize);
+        self.theme_choice = index as usize;
+        self.theme = themes[self.theme_choice];
+    }
+
+    fn jump_theme_choice(&mut self, last: bool) {
+        let themes = theme::all();
+        if themes.is_empty() {
+            return;
+        }
+        self.theme_choice = if last { themes.len() - 1 } else { 0 };
+        self.theme = themes[self.theme_choice];
+    }
+
+    fn finish_theme_picker(&mut self, save: bool) {
+        if save {
+            let theme = theme::all()[self.theme_choice];
+            self.theme = theme;
+            self.config.theme = theme.name.into();
+            self.status = match config::save_theme(theme.name) {
+                Ok(()) => format!("theme: {} (saved)", theme.name),
+                Err(err) => format!("theme: {} (not saved: {err})", theme.name),
+            };
+        } else if let Some(original) = self.theme_original {
+            self.theme = original;
+            self.status.clear();
+        }
+        self.theme_original = None;
+        self.mode = Mode::Normal;
     }
 
     fn run_plugin_command(&mut self, command: &str, args: &str) {
@@ -392,6 +450,22 @@ impl App {
         match self.mode {
             Mode::Command => self.handle_command_key(key),
             Mode::Normal => self.handle_normal_key(key),
+            Mode::ThemePicker => self.handle_theme_picker_key(key),
+        }
+    }
+
+    fn handle_theme_picker_key(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Esc | KeyCode::Char('q') => self.finish_theme_picker(false),
+            KeyCode::Enter => self.finish_theme_picker(true),
+            KeyCode::Char('j') | KeyCode::Down => self.move_theme_choice(1),
+            KeyCode::Char('k') | KeyCode::Up => self.move_theme_choice(-1),
+            KeyCode::Char('g') | KeyCode::Home => self.jump_theme_choice(false),
+            KeyCode::Char('G') | KeyCode::End => self.jump_theme_choice(true),
+            KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.finish_theme_picker(false);
+            }
+            _ => {}
         }
     }
 
@@ -446,8 +520,15 @@ impl App {
             }
             KeyCode::Char(':') => {
                 self.mode = Mode::Command;
+                self.prompt = ':';
                 self.input.clear();
             }
+            KeyCode::Char('/') => {
+                self.mode = Mode::Command;
+                self.prompt = '/';
+                self.input.clear();
+            }
+            KeyCode::Char('T') => self.open_theme_picker(),
             KeyCode::Char('?') => self.status = HINTS.into(),
             KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                 self.should_quit = true;
@@ -468,4 +549,4 @@ impl App {
 }
 
 pub const HINTS: &str =
-    "j/k move  h/l dirs  g/G top/bottom  enter open  . hidden  r reload  : command  q quit";
+    "j/k move  h/l dirs  g/G top/bottom  enter open  . hidden  r reload  T theme  : command  q quit";
