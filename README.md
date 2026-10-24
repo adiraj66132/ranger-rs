@@ -1,32 +1,30 @@
 # ranger-rs
 
-A fast, Vim-powered terminal file manager written in Rust. It is a clean-room
-take on ranger's ideas, not a port: own config format, own plugin runtime, no
-Python at startup.
+A fast, Vim-powered terminal file manager written in Rust.
+
+ranger-rs is a Rust reimplementation of [ranger](https://github.com/ranger/ranger),
+the classic Vim-powered console file manager, with a modern async UI and a
+Yazi-inspired floating info panel. It is a clean-room rewrite — no Python at
+startup, no ranger source copied — built for speed and extensibility.
 
 The original Python ranger lives at `/home/adiraj/git/ranger` for reference and
 is intentionally untouched.
 
-## Status
+## Features
 
-Early working version. Navigation, previews, commands, scope rules, and Lua
-plugins work. File operations beyond mkdir/touch, tabs, bookmarks, tags, search,
-VCS integration, and image previews are not implemented yet.
-
-Requires Linux or macOS (it uses Unix permissions and `xdg-open`/`open`).
-
-## Build and run
-
-```sh
-cargo build --release
-./target/release/ranger-rs [PATH]
-```
-
-Install by copying the binary somewhere on `$PATH`:
-
-```sh
-install -m755 target/release/ranger-rs ~/.local/bin/ranger-rs
-```
+| Feature | Description |
+| --- | --- |
+| **Vim keys** | `hjkl`, `g/G`, `Ctrl-d/u`, `~`, `.`, `q` — ranger's keybindings, ported |
+| **Three-pane UI** | Parent directory, current directory, and preview side-by-side |
+| **Async previews** | Scope rules with timeout; slow previews never block the UI |
+| **Floating info panel** | `Tab` opens a Yazi-style popup: size, owner, MIME type, timestamps, permissions, path |
+| **Editor detection** | `nvim` → `vim` → `vi` → `nano` → `emacs`, with TUI suspend/resume |
+| **Built-in themes** | `catppuccin-*`, `tokyo-night-*`, `nord`, `dracula`, `gruvbox`, `default` |
+| **Theme picker** | `T` or `:theme` — live preview, saves to `config.toml` |
+| **Lua plugins** | `~/.config/ranger-rs/plugins/*.lua` via embedded `mlua` runtime |
+| **Commands** | `:cd`, `:mkdir`, `:touch`, `:open`, `:reload`, `:hidden`, `:pwd`, `:theme` |
+| **Config** | TOML config at `~/.config/ranger-rs/config.toml` |
+| **Zero-cost theming** | Themes resolved once at compile time; no per-frame lookup cost |
 
 ## Keys
 
@@ -135,8 +133,37 @@ API:
 Plugin errors are reported in the status line; a broken plugin does not prevent
 startup.
 
+## Origin & inspiration
+
+ranger-rs is inspired by:
+
+- **[ranger](https://github.com/ranger/ranger)** — the Vim-powered console
+  file manager this project reimplements in Rust. The original Python codebase
+  is kept at `/home/adiraj/git/ranger` for reference.
+- **[yazi](https://github.com/sxyazi/yazi)** — the floating info panel
+  (size, owner, MIME type, timestamps) on `Tab` is Yazi-style.
+
+## Build and run
+
+Requires Rust. Linux and macOS are supported.
+
+```sh
+cargo build --release
+./target/release/ranger-rs [PATH]
+```
+
+Install by copying the binary somewhere on `$PATH`:
+
+```sh
+install -m755 target/release/ranger-rs ~/.local/bin/ranger-rs
+```
+
 ## Tests
 
 ```sh
 cargo test
 ```
+
+## License
+
+[MIT License](LICENSE)
