@@ -4,6 +4,7 @@ use std::path::PathBuf;
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct Config {
+    pub theme: String,
     pub show_hidden: bool,
     pub preview_lines: usize,
     pub preview_bytes: usize,
@@ -26,6 +27,7 @@ fn default_timeout() -> u64 {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            theme: crate::theme::DEFAULT_NAME.into(),
             show_hidden: false,
             preview_lines: 200,
             preview_bytes: 64 * 1024,

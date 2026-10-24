@@ -2,6 +2,7 @@ use crate::config::{self, Config};
 use crate::fs::{self, Entry};
 use crate::plugin::{Action, PluginHost};
 use crate::preview::{self, PreviewMessage};
+use crate::theme::{self, Theme};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -25,6 +26,7 @@ pub struct App {
     pub input: String,
     pub status: String,
     pub config: Config,
+    pub theme: &'static Theme,
     pub should_quit: bool,
     preview_generation: u64,
     preview_tx: Sender<PreviewMessage>,
@@ -43,6 +45,17 @@ impl App {
             Some(dir) => PluginHost::load(&dir, actions.clone(), shared_cwd.clone()),
             None => (None, Vec::new()),
         };
+        let theme = match theme::get(&config.theme) {
+            Some(theme) => theme,
+            None => {
+                warnings.push(format!(
+                    "unknown theme '{}', using {}",
+                    config.theme,
+                    theme::DEFAULT_NAME
+                ));
+                theme::default_theme()
+            }
+        };
 
         let mut app = Self {
             cwd,
@@ -55,6 +68,7 @@ impl App {
             input: String::new(),
             status: String::new(),
             config,
+            theme,
             should_quit: false,
             preview_generation: 0,
             preview_tx,
@@ -320,7 +334,23 @@ impl App {
             "open" => self.open_selected(),
             "pwd" => self.status = self.cwd.display().to_string(),
             "help" => self.status = HINTS.into(),
+            "theme" => self.set_theme(args),
+            "themes" => self.status = theme::names().join(", "),
             _ => self.run_plugin_command(command, args),
+        }
+    }
+
+    fn set_theme(&mut self, name: &str) {
+        if name.is_empty() {
+            self.status = format!("theme: {}", self.theme.name);
+            return;
+        }
+        match theme::get(name) {
+            Some(theme) => {
+                self.theme = theme;
+                self.status = format!("theme: {}", theme.name);
+            }
+            None => self.status = format!("unknown theme: {name}"),
         }
     }
 

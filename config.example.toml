@@ -1,5 +1,10 @@
 # Copy to ~/.config/ranger-rs/config.toml
 
+# Built-ins: default, catppuccin-mocha, catppuccin-macchiato,
+# catppuccin-frappe, catppuccin-latte, tokyo-night, tokyo-night-storm,
+# tokyo-night-day, nord, dracula, gruvbox.
+theme = "catppuccin-mocha"
+
 show_hidden = false
 preview_lines = 200
 preview_bytes = 65536

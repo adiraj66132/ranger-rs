@@ -47,7 +47,8 @@ install -m755 target/release/ranger-rs ~/.local/bin/ranger-rs
 ## Commands
 
 `:q`, `:cd [path]`, `:mkdir <path>`, `:touch <path>`, `:open`, `:reload`,
-`:hidden`, `:pwd`, `:help`, plus any command registered by a plugin.
+`:hidden`, `:pwd`, `:help`, `:theme [name]`, `:themes`, plus any command
+registered by a plugin.
 
 ## Config
 
@@ -55,6 +56,7 @@ install -m755 target/release/ranger-rs ~/.local/bin/ranger-rs
 See `config.example.toml`.
 
 ```toml
+theme = "catppuccin-mocha"
 show_hidden = false
 preview_lines = 200
 preview_bytes = 65536
@@ -67,6 +69,19 @@ timeout_ms = 1500
 
 Scope rules run asynchronously with a timeout, so a slow preview never blocks
 the UI. Built-in previews handle directories, text, and binary files.
+
+## Themes
+
+Built in: `default`, `catppuccin-mocha`, `catppuccin-macchiato`,
+`catppuccin-frappe`, `catppuccin-latte`, `tokyo-night`, `tokyo-night-storm`,
+`tokyo-night-day`, `nord`, `dracula`, `gruvbox`.
+
+Pick one in the config, or switch for the current session with `:theme <name>`.
+`:theme` shows the active theme and `:themes` lists the built-ins.
+
+Themes are static compile-time palettes resolved once at startup. Rendering
+reads the resolved `Style`s directly, so switching themes adds no per-frame
+lookups or allocation.
 
 ## Plugins
 

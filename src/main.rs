@@ -3,6 +3,7 @@ mod config;
 mod fs;
 mod plugin;
 mod preview;
+mod theme;
 mod ui;
 
 use app::App;
