@@ -41,7 +41,8 @@ fi
 cargo build --release
 $sudo install -d "$prefix"
 $sudo install -m755 target/release/ranger-rs "$prefix/ranger-rs"
-echo "installed ranger-rs to $prefix/ranger-rs"
+$sudo ln -sf ranger-rs "$prefix/rr"
+echo "installed ranger-rs and rr to $prefix"
 
 case ":$PATH:" in
     *":$prefix:"*) ;;
