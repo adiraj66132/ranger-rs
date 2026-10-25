@@ -7,74 +7,144 @@
 <style>
   /* shortcut: content mirrors README.md + config.example.toml + plugins/example.lua;
      when keybindings drift, upgrade path = generate this page from README instead of editing both. */
-  html { background: #000; }
+  :root {
+    --bg: #000;
+    --content: #0c0c0c;
+    --panel: #141414;
+    --panel-2: #181818;
+    --border: #2b2b2b;
+    --text: #c9c9c9;
+    --muted: #888;
+    --heading: #fff;
+    --link: #6cb0ff;
+    --link-visited: #c792ea;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
   body {
     margin: 0;
-    background: #0b0b0b;
-    color: #ccc;
-    font: 14px/1.6 "Bitstream Charter", Georgia, "Times New Roman", serif;
+    background: var(--content);
+    color: var(--text);
+    font: 14px/1.65 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
   }
-  a { color: #6bf; text-decoration: none; }
+  a { color: var(--link); text-decoration: none; }
+  a:visited { color: var(--link-visited); }
   a:hover { text-decoration: underline; }
-  #header {
-    background: #1a1a1a;
-    border-bottom: 1px solid #333;
-    padding: 10px 16px;
+
+  /* top bar */
+  #topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 18px;
+    height: 48px;
   }
-  #header .site { font-size: 20px; font-weight: bold; color: #fff; }
-  #header .site a { color: #fff; }
-  #header .tag { color: #888; font-size: 13px; margin-left: 8px; }
-  #page {
-    max-width: 860px;
-    margin: 0 auto;
-    padding: 20px 16px 60px;
+  #topbar .brand { color: var(--heading); font-size: 18px; font-weight: bold; }
+  #topbar .brand:visited { color: var(--heading); }
+  #topbar .tag { color: var(--muted); font-size: 12px; border-left: 1px solid var(--border); padding-left: 10px; }
+  #topbar .spacer { flex: 1; }
+  #topbar .repo { font-size: 13px; }
+
+  /* layout */
+  #wrap { display: flex; align-items: flex-start; max-width: 1200px; margin: 0 auto; }
+
+  /* sidebar (Arch Wiki portlets) */
+  #sidebar {
+    flex: 0 0 200px;
+    padding: 18px 12px 40px;
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+  .portlet { margin-bottom: 24px; }
+  .portlet h3 {
+    margin: 0 0 6px;
+    color: #aaa;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .portlet ul { list-style: none; margin: 0; padding: 0; }
+  .portlet li { margin: 3px 0; }
+  .portlet a { font-size: 13px; }
+
+  /* content */
+  #content {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 20px 28px 40px;
   }
   h1 {
     font-size: 26px;
-    color: #fff;
     font-weight: normal;
-    border-bottom: 1px solid #3a3a3a;
+    color: var(--heading);
+    border-bottom: 1px solid var(--border);
     padding-bottom: 4px;
-    margin: 8px 0 4px;
+    margin: 0 0 2px;
   }
+  .from { color: var(--muted); font-size: 12px; margin: 0 0 14px; }
   h2 {
     font-size: 20px;
-    color: #fff;
     font-weight: normal;
-    border-bottom: 1px solid #2e2e2e;
+    color: var(--heading);
+    border-bottom: 1px solid var(--border);
     padding-bottom: 3px;
-    margin-top: 32px;
+    margin: 30px 0 10px;
   }
-  .subtitle { color: #888; font-size: 13px; margin-top: 0; }
-  #toc {
-    background: #141414;
-    border: 1px solid #333;
-    padding: 8px 16px;
-    display: inline-block;
-    margin: 16px 0;
+  h3 { font-size: 15px; color: var(--heading); margin: 18px 0 6px; }
+  p { margin: 8px 0; }
+
+  /* related articles box (Arch Wiki) */
+  #related {
+    float: right;
+    width: 220px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    margin: 4px 0 16px 20px;
+    padding: 8px 12px;
     font-size: 13px;
   }
-  #toc .hd { font-weight: bold; color: #fff; }
-  #toc ol { margin: 4px 0 0 20px; padding: 0; }
-  table {
-    border-collapse: collapse;
-    margin: 12px 0;
-    font-size: 14px;
-    width: 100%;
+  #related .hd { font-weight: bold; color: var(--heading); margin-bottom: 4px; }
+  #related ul { margin: 0; padding-left: 18px; }
+
+  /* contents box (Wikipedia) */
+  #toc {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 8px 16px 10px;
+    display: inline-block;
+    margin: 14px 0 6px;
+    font-size: 13px;
   }
-  th, td { border: 1px solid #333; padding: 5px 10px; text-align: left; }
-  th { background: #1a1a1a; color: #fff; font-weight: bold; }
-  tr:nth-child(even) td { background: #111; }
+  #toc .hd { font-weight: bold; color: var(--heading); text-align: center; display: block; margin-bottom: 4px; }
+  #toc ol { margin: 0; padding-left: 22px; }
+  #toc li { margin: 2px 0; }
+  .clear { clear: both; }
+
+  /* tables */
+  table { border-collapse: collapse; margin: 12px 0; font-size: 13.5px; width: 100%; }
+  th, td { border: 1px solid var(--border); padding: 5px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--panel-2); color: var(--heading); font-weight: bold; }
+  tr:nth-child(even) td { background: #101010; }
+
+  /* code */
   code, pre {
     font-family: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
     font-size: 13px;
   }
-  code { background: #161616; border: 1px solid #2a2a2a; padding: 1px 4px; }
+  code { background: #161616; border: 1px solid #2a2a2a; padding: 1px 4px; border-radius: 2px; }
   pre {
     background: #111;
-    border: 1px solid #2a2a2a;
+    border: 1px solid var(--border);
+    border-left: 3px solid #444;
     padding: 10px 14px;
     overflow-x: auto;
+    line-height: 1.5;
   }
   pre code { background: none; border: 0; padding: 0; }
   kbd {
@@ -87,27 +157,72 @@
     padding: 1px 5px;
     color: #eee;
   }
-  ul { padding-left: 22px; }
+  ul, ol { padding-left: 22px; }
   li { margin: 3px 0; }
+
+  /* footer */
   #footer {
-    border-top: 1px solid #2e2e2e;
+    border-top: 1px solid var(--border);
     margin-top: 40px;
     padding-top: 10px;
-    color: #777;
+    color: var(--muted);
     font-size: 12px;
+  }
+
+  @media (max-width: 760px) {
+    #wrap { display: block; }
+    #sidebar {
+      position: static;
+      max-height: none;
+      border-right: 0;
+      border-bottom: 1px solid var(--border);
+      padding: 14px 18px 4px;
+    }
+    .portlet { margin-bottom: 14px; }
+    #content { padding: 16px 18px 40px; }
+    #related { float: none; width: auto; margin: 12px 0; }
   }
 </style>
 </head>
 <body>
 
-<div id="header">
-  <span class="site"><a href="./">ranger-rs</a></span><span class="tag">wiki</span>
+<div id="topbar">
+  <a class="brand" href="./">ranger-rs</a>
+  <span class="tag">wiki</span>
+  <span class="spacer"></span>
+  <a class="repo" href="https://github.com/adiraj66132/ranger-rs">GitHub</a>
 </div>
 
-<div id="page">
+<div id="wrap">
+
+<nav id="sidebar">
+  <div class="portlet">
+    <h3>Navigation</h3>
+    <ul>
+      <li><a href="#install">Installation</a></li>
+      <li><a href="#keys">Keybindings</a></li>
+      <li><a href="#commands">Commands</a></li>
+      <li><a href="#editors">Editors</a></li>
+      <li><a href="#config">Configuration</a></li>
+      <li><a href="#themes">Themes</a></li>
+      <li><a href="#plugins">Plugins</a></li>
+    </ul>
+  </div>
+  <div class="portlet">
+    <h3>Related</h3>
+    <ul>
+      <li><a href="https://github.com/ranger/ranger">ranger</a></li>
+      <li><a href="https://github.com/sxyazi/yazi">yazi</a></li>
+      <li><a href="https://github.com/adiraj66132/ranger-rs">Source code</a></li>
+      <li><a href="https://github.com/adiraj66132/ranger-rs/blob/master/LICENSE">MIT License</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main id="content">
 
 <h1>ranger-rs</h1>
-<p class="subtitle">A fast, Vim-powered terminal file manager written in Rust.</p>
+<p class="from">From the ranger-rs wiki</p>
 
 <p>
   ranger-rs is a Rust reimplementation of
@@ -121,6 +236,16 @@
   (the floating info panel on <kbd>Tab</kbd>).
 </p>
 
+<div id="related">
+  <div class="hd">Related articles</div>
+  <ul>
+    <li><a href="#install">Installation</a></li>
+    <li><a href="#keys">Keybindings</a></li>
+    <li><a href="#config">Configuration</a></li>
+    <li><a href="#themes">Themes</a></li>
+  </ul>
+</div>
+
 <div id="toc">
   <span class="hd">Contents</span>
   <ol>
@@ -133,6 +258,8 @@
     <li><a href="#plugins">Plugins</a></li>
   </ol>
 </div>
+
+<div class="clear"></div>
 
 <h2 id="install">Get started</h2>
 <pre><code># Clone
@@ -251,10 +378,10 @@ end)
 ranger.register_key("N", "newdir")</code></pre>
 
 <div id="footer">
-  Content mirrors the project <a href="https://github.com/adiraj66132/ranger-rs">README</a>
-  and example files · Licensed under <a href="https://github.com/adiraj66132/ranger-rs/blob/master/LICENSE">MIT</a>
+  Content is available under the <a href="https://github.com/adiraj66132/ranger-rs/blob/master/LICENSE">MIT License</a>.
 </div>
 
+</main>
 </div>
 </body>
 </html>
