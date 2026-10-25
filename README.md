@@ -29,6 +29,8 @@ install -m755 target/release/ranger-rs ~/.local/bin/ranger-rs
 ranger-rs
 ```
 
+Or run the install script: `./install.sh` (installs to `~/.local/bin`; `./install.sh --system` for `/usr/local/bin`).
+
 ## Keys
 
 | Key | Action |
