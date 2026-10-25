@@ -22,14 +22,20 @@ cargo build --release
 ./target/release/ranger-rs /path/to/directory
 ```
 
-Or install:
+Or install the latest prebuilt binary (Linux x86_64/arm64, macOS Intel/Apple Silicon):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/adiraj66132/ranger-rs/master/install.sh | sh
+```
+
+This installs to `~/.local/bin` with an `rr` shortcut. If you built from source instead:
 
 ```sh
 install -m755 target/release/ranger-rs ~/.local/bin/ranger-rs
 ranger-rs
 ```
 
-Or run the install script: `./install.sh` (installs to `~/.local/bin` with an `rr` shortcut; `./install.sh --system` for `/usr/local/bin`).
+From a checkout, `./install.sh --system` installs to `/usr/local/bin`, and `PREFIX=/opt/bin ./install.sh` installs to a custom location.
 
 ## Keys
 

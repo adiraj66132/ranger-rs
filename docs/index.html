@@ -271,22 +271,17 @@ cargo build --release
 
 # Run
 ./target/release/ranger-rs /path/to/directory</code></pre>
-<p>Or install:</p>
-<pre><code>install -m755 target/release/ranger-rs ~/.local/bin/ranger-rs
-ranger-rs</code></pre>
-
-<p>Or use the install script from a checkout:</p>
-<pre><code>./install.sh</code></pre>
-<p>
-  Or install with the one-liner — it clones the repo, builds, and installs to
-  <code>~/.local/bin</code>:
-</p>
+<p>Or install the latest prebuilt binary:</p>
 <pre><code>curl -fsSL https://raw.githubusercontent.com/adiraj66132/ranger-rs/master/install.sh | sh</code></pre>
+<p>
+  This installs to <code>~/.local/bin</code> and adds an <code>rr</code>
+  shortcut, so typing <code>rr</code> opens ranger-rs in the current directory.
+  Supported platforms: Linux x86_64/arm64 and macOS Intel/Apple Silicon.
+</p>
 <p>
   From a checkout, <code>./install.sh --system</code> installs to
   <code>/usr/local/bin</code>, and <code>PREFIX=/opt/bin ./install.sh</code>
-  installs to a custom location. The script also creates an <code>rr</code>
-  shortcut, so typing <code>rr</code> opens ranger-rs in the current directory.
+  installs to a custom location.
 </p>
 
 <h2 id="keys">Keys</h2>
