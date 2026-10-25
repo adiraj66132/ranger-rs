@@ -275,6 +275,19 @@ cargo build --release
 <pre><code>install -m755 target/release/ranger-rs ~/.local/bin/ranger-rs
 ranger-rs</code></pre>
 
+<p>Or use the install script from a checkout:</p>
+<pre><code>./install.sh</code></pre>
+<p>
+  Or install with the one-liner — it clones the repo, builds, and installs to
+  <code>~/.local/bin</code>:
+</p>
+<pre><code>curl -fsSL https://raw.githubusercontent.com/adiraj66132/ranger-rs/master/install.sh | sh</code></pre>
+<p>
+  From a checkout, <code>./install.sh --system</code> installs to
+  <code>/usr/local/bin</code>, and <code>PREFIX=/opt/bin ./install.sh</code>
+  installs to a custom location.
+</p>
+
 <h2 id="keys">Keys</h2>
 <table>
   <tr><th>Key</th><th>Action</th></tr>

@@ -22,10 +22,20 @@ if ! command -v cargo >/dev/null 2>&1; then
     exit 1
 fi
 
-cd "$(dirname "$0")"
-if [ ! -f Cargo.toml ]; then
-    echo "install.sh: Cargo.toml not found — run this from the ranger-rs checkout" >&2
-    exit 1
+# Use the local checkout when this script is run from one; otherwise (piped,
+# or copied elsewhere) clone a fresh copy to build.
+if [ -f "$0" ] && [ -f "$(dirname "$0")/Cargo.toml" ]; then
+    cd "$(dirname "$0")"
+else
+    if ! command -v git >/dev/null 2>&1; then
+        echo "install.sh: git not found — clone the repo manually instead: https://github.com/adiraj66132/ranger-rs" >&2
+        exit 1
+    fi
+    tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' EXIT
+    echo "cloning ranger-rs..."
+    git clone --depth 1 https://github.com/adiraj66132/ranger-rs.git "$tmp"
+    cd "$tmp"
 fi
 
 cargo build --release
