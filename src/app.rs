@@ -484,7 +484,10 @@ impl App {
             "pwd" => self.set_status(self.cwd.display().to_string()),
             "help" => self.open_help(),
             "theme" => self.set_theme(args),
-            "themes" => self.set_status(theme::names().join(", ")),
+            "themes" => self.set_status(format!(
+                "{} themes — press T to browse",
+                theme::names().len()
+            )),
             _ => self.run_plugin_command(command, args),
         }
     }

@@ -205,6 +205,134 @@ static GRUVBOX: Theme = Theme {
     success: rgb(0xb8bb26),
 };
 
+static ROSE_PINE: Theme = Theme {
+    name: "rose-pine",
+    bg: rgb(0x191724),
+    surface: rgb(0x1f1d2e),
+    surface_alt: rgb(0x26233a),
+    fg: rgb(0xe0def4),
+    muted: rgb(0x6e6a86),
+    divider: rgb(0x403d52),
+    accent: rgb(0xc4a7e7),
+    selection_fg: rgb(0xe0def4),
+    selection_bg: rgb(0x26233a),
+    danger: rgb(0xeb6f92),
+    warning: rgb(0xf6c177),
+    success: rgb(0x9ccfd8),
+};
+
+static ROSE_PINE_MOON: Theme = Theme {
+    name: "rose-pine-moon",
+    bg: rgb(0x232136),
+    surface: rgb(0x2a273f),
+    surface_alt: rgb(0x393552),
+    fg: rgb(0xe0def4),
+    muted: rgb(0x6e6a86),
+    divider: rgb(0x44415a),
+    accent: rgb(0xc4a7e7),
+    selection_fg: rgb(0xe0def4),
+    selection_bg: rgb(0x393552),
+    danger: rgb(0xeb6f92),
+    warning: rgb(0xf6c177),
+    success: rgb(0x9ccfd8),
+};
+
+static ROSE_PINE_DAWN: Theme = Theme {
+    name: "rose-pine-dawn",
+    bg: rgb(0xfaf4ed),
+    surface: rgb(0xfffaf3),
+    surface_alt: rgb(0xf2e9e1),
+    fg: rgb(0x575279),
+    muted: rgb(0x9893a5),
+    divider: rgb(0xdfdad9),
+    accent: rgb(0x907aa9),
+    selection_fg: rgb(0x575279),
+    selection_bg: rgb(0xf2e9e1),
+    danger: rgb(0xb4637a),
+    warning: rgb(0xea9d34),
+    success: rgb(0x56949f),
+};
+
+static SOLARIZED_DARK: Theme = Theme {
+    name: "solarized-dark",
+    bg: rgb(0x002b36),
+    surface: rgb(0x073642),
+    surface_alt: rgb(0x0e4b56),
+    fg: rgb(0x93a1a1),
+    muted: rgb(0x586e75),
+    divider: rgb(0x12505c),
+    accent: rgb(0x268bd2),
+    selection_fg: rgb(0x93a1a1),
+    selection_bg: rgb(0x0e4b56),
+    danger: rgb(0xdc322f),
+    warning: rgb(0xb58900),
+    success: rgb(0x859900),
+};
+
+static SOLARIZED_LIGHT: Theme = Theme {
+    name: "solarized-light",
+    bg: rgb(0xfdf6e3),
+    surface: rgb(0xeee8d5),
+    surface_alt: rgb(0xe4ddc8),
+    fg: rgb(0x586e75),
+    muted: rgb(0x93a1a1),
+    divider: rgb(0xd8d2c0),
+    accent: rgb(0x268bd2),
+    selection_fg: rgb(0x586e75),
+    selection_bg: rgb(0xe4ddc8),
+    danger: rgb(0xdc322f),
+    warning: rgb(0xb58900),
+    success: rgb(0x859900),
+};
+
+static KANAGAWA: Theme = Theme {
+    name: "kanagawa",
+    bg: rgb(0x1f1f28),
+    surface: rgb(0x16161d),
+    surface_alt: rgb(0x2a2a37),
+    fg: rgb(0xdcd7ba),
+    muted: rgb(0x727169),
+    divider: rgb(0x363646),
+    accent: rgb(0x7e9cd8),
+    selection_fg: rgb(0xdcd7ba),
+    selection_bg: rgb(0x2a2a37),
+    danger: rgb(0xe46876),
+    warning: rgb(0xc0a36e),
+    success: rgb(0x98bb6c),
+};
+
+static EVERFOREST: Theme = Theme {
+    name: "everforest",
+    bg: rgb(0x2d353b),
+    surface: rgb(0x232a2e),
+    surface_alt: rgb(0x3d484d),
+    fg: rgb(0xd3c6aa),
+    muted: rgb(0x859289),
+    divider: rgb(0x475258),
+    accent: rgb(0xa7c080),
+    selection_fg: rgb(0xd3c6aa),
+    selection_bg: rgb(0x3d484d),
+    danger: rgb(0xe67e80),
+    warning: rgb(0xdbbc7f),
+    success: rgb(0x83c092),
+};
+
+static ONE_DARK: Theme = Theme {
+    name: "one-dark",
+    bg: rgb(0x282c34),
+    surface: rgb(0x21252b),
+    surface_alt: rgb(0x3e4451),
+    fg: rgb(0xabb2bf),
+    muted: rgb(0x5c6370),
+    divider: rgb(0x3e4451),
+    accent: rgb(0x61afef),
+    selection_fg: rgb(0xabb2bf),
+    selection_bg: rgb(0x3e4451),
+    danger: rgb(0xe06c75),
+    warning: rgb(0xe5c07b),
+    success: rgb(0x98c379),
+};
+
 static THEMES: &[&Theme] = &[
     &CATPPUCCIN_MOCHA,
     &CATPPUCCIN_MACCHIATO,
@@ -213,9 +341,17 @@ static THEMES: &[&Theme] = &[
     &TOKYO_NIGHT,
     &TOKYO_NIGHT_STORM,
     &TOKYO_NIGHT_DAY,
+    &ROSE_PINE,
+    &ROSE_PINE_MOON,
+    &ROSE_PINE_DAWN,
+    &SOLARIZED_DARK,
+    &SOLARIZED_LIGHT,
     &NORD,
     &DRACULA,
     &GRUVBOX,
+    &KANAGAWA,
+    &EVERFOREST,
+    &ONE_DARK,
     &DEFAULT,
 ];
 
@@ -233,6 +369,18 @@ pub fn get(name: &str) -> Option<&'static Theme> {
     }
     if name.eq_ignore_ascii_case("tokyo") || name.eq_ignore_ascii_case("tokyonight") {
         return Some(&TOKYO_NIGHT);
+    }
+    if name.eq_ignore_ascii_case("solarized") {
+        return Some(&SOLARIZED_DARK);
+    }
+    if name.eq_ignore_ascii_case("onedark") {
+        return Some(&ONE_DARK);
+    }
+    if name.eq_ignore_ascii_case("rosepine") {
+        return Some(&ROSE_PINE);
+    }
+    if name.eq_ignore_ascii_case("everforest-dark") {
+        return Some(&EVERFOREST);
     }
     None
 }
@@ -263,6 +411,66 @@ mod tests {
             Some("catppuccin-mocha")
         );
         assert_eq!(get("Tokyo").map(|theme| theme.name), Some("tokyo-night"));
+        assert_eq!(
+            get("solarized").map(|theme| theme.name),
+            Some("solarized-dark")
+        );
+        assert_eq!(get("onedark").map(|theme| theme.name), Some("one-dark"));
+        assert_eq!(get("rosepine").map(|theme| theme.name), Some("rose-pine"));
+        assert_eq!(
+            get("everforest-dark").map(|theme| theme.name),
+            Some("everforest")
+        );
         assert!(get("nope").is_none());
+    }
+
+    #[test]
+    fn names_are_unique() {
+        let mut seen = Vec::new();
+        for theme in all() {
+            assert!(
+                !seen.contains(&theme.name),
+                "duplicate theme: {}",
+                theme.name
+            );
+            seen.push(theme.name);
+        }
+    }
+
+    /// Relative luminance from the WCAG definition.
+    fn luminance(color: Color) -> Option<f64> {
+        let Color::Rgb(r, g, b) = color else {
+            return None;
+        };
+        let channel = |value: u8| {
+            let value = value as f64 / 255.0;
+            if value <= 0.04045 {
+                value / 12.92
+            } else {
+                ((value + 0.055) / 1.055).powf(2.4)
+            }
+        };
+        Some(0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b))
+    }
+
+    fn contrast(a: Color, b: Color) -> Option<f64> {
+        let (a, b) = (luminance(a)?, luminance(b)?);
+        let (light, dark) = if a > b { (a, b) } else { (b, a) };
+        Some((light + 0.05) / (dark + 0.05))
+    }
+
+    #[test]
+    fn palettes_stay_legible() {
+        for theme in all() {
+            // `default` rides on the terminal's own ANSI colours, so there is
+            // nothing to measure.
+            let Some(body) = contrast(theme.fg, theme.bg) else {
+                continue;
+            };
+            assert!(body >= 4.5, "{}: fg on bg is {body:.2}", theme.name);
+
+            let accent = contrast(theme.accent, theme.bg).unwrap_or(0.0);
+            assert!(accent >= 3.0, "{}: accent on bg is {accent:.2}", theme.name);
+        }
     }
 }

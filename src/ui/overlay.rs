@@ -89,8 +89,13 @@ pub fn draw_theme_picker(frame: &mut Frame, app: &App, state: &mut ListState) {
         .collect();
 
     state.select(Some(app.theme_choice));
+    let title = picker_title(
+        theme::all().len(),
+        height.saturating_sub(2) as usize,
+        app.theme_choice,
+    );
     let list = List::new(items)
-        .block(panel("Themes  Enter save  Esc cancel", app.theme))
+        .block(panel(&title, app.theme))
         .style(Style::default().bg(app.theme.surface))
         .highlight_style(row::selection_style(app.theme));
     frame.render_stateful_widget(list, popup, state);
@@ -151,6 +156,15 @@ fn field(key: &str, action: &str, key_width: usize, theme: &Theme) -> Line<'stat
         Span::raw("  "),
         Span::styled(action.to_string(), Style::default().fg(theme.muted)),
     ])
+}
+
+/// Only advertise a position when the list cannot show every theme at once.
+fn picker_title(count: usize, visible: usize, choice: usize) -> String {
+    if count > visible {
+        format!("Themes {}/{}  Enter save  Esc cancel", choice + 1, count)
+    } else {
+        "Themes  Enter save  Esc cancel".to_string()
+    }
 }
 
 fn panel(title: &str, theme: &Theme) -> Block<'static> {
@@ -217,5 +231,15 @@ mod tests {
                 assert!(popup.bottom() <= area.bottom(), "{popup:?} vs {area:?}");
             }
         }
+    }
+
+    #[test]
+    fn picker_title_only_shows_position_when_it_scrolls() {
+        assert_eq!(picker_title(19, 30, 4), "Themes  Enter save  Esc cancel");
+        assert_eq!(
+            picker_title(19, 10, 4),
+            "Themes 5/19  Enter save  Esc cancel"
+        );
+        assert_eq!(picker_title(19, 19, 0), "Themes  Enter save  Esc cancel");
     }
 }
