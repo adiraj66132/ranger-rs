@@ -365,7 +365,7 @@ impl App {
             return;
         }
         let path = self.resolve(arg);
-        match std::fs::File::create(&path) {
+        match touch_path(&path) {
             Ok(_) => {
                 self.status = format!("created {}", path.display());
                 let name = path
@@ -614,5 +614,57 @@ impl App {
     }
 }
 
+/// Create `path` if needed without touching the contents of an existing file.
+fn touch_path(path: &std::path::Path) -> std::io::Result<()> {
+    std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(path)
+        .map(|_| ())
+}
+
 pub const HINTS: &str =
-    "j/k move  h/l dirs  g/G top/bottom  enter open  . hidden  i info  r reload  T theme  : command  q quit";
+    "j/k move  h/l dirs  g/G top/bottom  enter open  . hidden  tab info  r reload  T theme  : command  q quit";
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn touch_does_not_truncate_an_existing_file() {
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("ranger-rs-touch-{stamp}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("keep.txt");
+        std::fs::write(&path, "important contents\n").unwrap();
+
+        touch_path(&path).unwrap();
+
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            "important contents\n"
+        );
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn touch_creates_missing_files() {
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("ranger-rs-touch-new-{stamp}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("new.txt");
+
+        touch_path(&path).unwrap();
+
+        assert!(path.is_file());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+}

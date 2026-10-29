@@ -93,18 +93,23 @@ fn draw_current(frame: &mut Frame, app: &App, state: &mut UiState, area: ratatui
     frame.render_stateful_widget(list, area, &mut state.current);
 }
 
-fn draw_info_popup(frame: &mut Frame, app: &App) {
-    let area = frame.area();
+fn info_popup_area(area: Rect, lines: usize) -> Rect {
     let width = area.width.saturating_sub(4).clamp(20, 60).min(area.width);
-    let max_height = area.height.saturating_sub(4).max(5);
-    let height = app.info_lines.len().max(1).min(max_height as usize) as u16 + 2;
-    let height = height.min(max_height);
-    let popup = Rect::new(
+    // Never let the popup extend past the terminal: widgets index the buffer
+    // directly and panic when asked to draw outside it.
+    let max_height = area.height.saturating_sub(4).max(3).min(area.height);
+    let height = lines.max(1).saturating_add(2).min(max_height as usize) as u16;
+    Rect::new(
         area.x + area.width.saturating_sub(width) / 2,
         area.y + area.height.saturating_sub(height) / 2,
         width,
         height,
-    );
+    )
+}
+
+fn draw_info_popup(frame: &mut Frame, app: &App) {
+    let area = frame.area();
+    let popup = info_popup_area(area, app.info_lines.len());
     frame.render_widget(Clear, popup);
 
     let lines: Vec<Line> = app
@@ -283,4 +288,22 @@ fn entry_style(entry: &Entry, theme: &Theme) -> Style {
 /// Filenames are attacker-controlled input as far as the terminal is concerned.
 fn clean(text: &str) -> String {
     text.chars().filter(|c| !c.is_control()).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn info_popup_never_exceeds_the_terminal() {
+        for height in 0..=10 {
+            let area = Rect::new(0, 0, 40, height);
+            let popup = info_popup_area(area, 50);
+            assert!(
+                popup.bottom() <= area.bottom(),
+                "popup {popup:?} exceeds area {area:?}"
+            );
+            assert!(popup.right() <= area.right());
+        }
+    }
 }

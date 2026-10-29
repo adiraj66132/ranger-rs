@@ -28,6 +28,12 @@ pub fn request(
 
 /// Cheap text sniff used to decide between the editor and the system opener.
 pub fn looks_text(path: &Path) -> bool {
+    // Opening a FIFO blocks until a writer appears, which would freeze the UI
+    // thread. Only sniff regular files (metadata follows symlinks).
+    let is_file = std::fs::metadata(path).is_ok_and(|meta| meta.file_type().is_file());
+    if !is_file {
+        return false;
+    }
     let Ok(file) = File::open(path) else {
         return false;
     };
@@ -44,6 +50,10 @@ fn generate(path: &Path, config: &Config) -> Vec<String> {
     };
     if meta.is_dir() {
         return directory_preview(path, config);
+    }
+    if !meta.file_type().is_file() {
+        // FIFOs, sockets and devices can block forever when opened.
+        return vec!["(special file)".into()];
     }
 
     let name = path
@@ -217,6 +227,34 @@ mod tests {
     fn previews_never_emit_escape_codes() {
         assert_eq!(sanitize("\u{1b}[31mred"), "[31mred");
         assert_eq!(sanitize("a\tb"), "a    b");
+    }
+
+    #[test]
+    fn special_files_are_not_sniffed_or_opened() {
+        use std::sync::mpsc;
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("ranger-rs-fifo-{stamp}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let fifo = dir.join("pipe");
+        let made = Command::new("mkfifo").arg(&fifo).status();
+        if !made.is_ok_and(|status| status.success()) {
+            std::fs::remove_dir_all(dir).unwrap();
+            return;
+        }
+
+        let (tx, rx) = mpsc::channel();
+        let path = fifo.clone();
+        thread::spawn(move || {
+            let _ = tx.send(looks_text(&path));
+        });
+        assert_eq!(rx.recv_timeout(Duration::from_secs(2)), Ok(false));
+        assert_eq!(generate(&fifo, &Config::default()), vec!["(special file)"]);
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
