@@ -50,6 +50,20 @@ Prebuilt targets:
 
 From a checkout, `./install.sh --system` installs to `/usr/local/bin`, and `PREFIX=/opt/bin ./install.sh` installs to a custom location.
 
+### Optional: Neovim config
+
+The installer can also set up the bundled Neovim config. It asks first, and only when it has a terminal to ask on, so piping the script into `sh` never touches your editor:
+
+```text
+  ? install the bundled Neovim config to ~/.config/nvim? [y/N]
+```
+
+Answer `y`, or pass `--nvim` to skip the question. `--no-nvim` skips it outright. The config is LazyVim-based and lives in [`nvim/`](nvim/) in this repository.
+
+If `~/.config/nvim` already exists, it is moved aside to `~/.config/nvim.bak.YYYYMMDD-HHMMSS` before anything is written — the installer never overwrites an existing editor config in place. Dotfiles such as `.ryoku-lazyvim` are included in the copy.
+
+Neovim itself is not installed for you. If `nvim` is missing from `PATH`, the installer says so and leaves the config in place.
+
 ### From source
 
 ```sh
