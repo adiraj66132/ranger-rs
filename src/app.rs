@@ -62,6 +62,7 @@ pub struct App {
     pub parent_entries: Vec<Entry>,
     pub parent_selected: Option<usize>,
     pub preview_lines: Vec<String>,
+    pub preview_frame: Option<crate::media::Frame>,
     pub show_info: bool,
     pub info_lines: Vec<(String, String)>,
     pub mode: Mode,
@@ -76,6 +77,7 @@ pub struct App {
     editor: Option<editor::Editor>,
     editor_checked: bool,
     editor_launch: Option<EditorLaunch>,
+    video_launch: Option<PathBuf>,
     pub should_quit: bool,
     preview_generation: u64,
     preview_tx: Sender<PreviewMessage>,
@@ -113,6 +115,7 @@ impl App {
             parent_entries: Vec::new(),
             parent_selected: None,
             preview_lines: Vec::new(),
+            preview_frame: None,
             show_info: false,
             info_lines: Vec::new(),
             mode: Mode::Normal,
@@ -127,6 +130,7 @@ impl App {
             editor: None,
             editor_checked: false,
             editor_launch: None,
+            video_launch: None,
             should_quit: false,
             preview_generation: 0,
             preview_tx,
@@ -232,6 +236,7 @@ impl App {
 
     fn request_preview(&mut self) {
         self.preview_generation = self.preview_generation.wrapping_add(1);
+        self.preview_frame = None;
         match self.entries.get(self.selected) {
             Some(entry) => {
                 self.preview_lines = vec!["Loading...".into()];
@@ -246,10 +251,15 @@ impl App {
         }
     }
 
+    pub fn preview_generation(&self) -> u64 {
+        self.preview_generation
+    }
+
     pub fn drain_preview(&mut self) {
         while let Ok(message) = self.preview_rx.try_recv() {
             if message.generation == self.preview_generation {
                 self.preview_lines = message.lines;
+                self.preview_frame = message.frame;
             }
         }
     }
@@ -360,6 +370,10 @@ impl App {
             self.change_dir(entry.path);
         } else if preview::looks_text(&entry.path) {
             self.open_in_editor(entry.path);
+        } else if crate::media::kind_of(&entry.path) == Some(crate::media::Kind::Video)
+            && crate::media::has_command("mpv")
+        {
+            self.video_launch = Some(entry.path);
         } else {
             self.open_path(&entry.path);
         }
@@ -379,6 +393,10 @@ impl App {
 
     pub fn take_editor_launch(&mut self) -> Option<EditorLaunch> {
         self.editor_launch.take()
+    }
+
+    pub fn take_video_launch(&mut self) -> Option<PathBuf> {
+        self.video_launch.take()
     }
 
     pub fn editor_finished(&mut self, editor: editor::Editor, error: Option<String>) {

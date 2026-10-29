@@ -3,6 +3,7 @@ mod config;
 mod editor;
 mod fs;
 mod info;
+mod media;
 mod plugin;
 mod preview;
 mod theme;
@@ -98,6 +99,8 @@ fn main() -> io::Result<()> {
 
     let mut tui = Tui::new()?;
     let mut state = ui::UiState::default();
+    // Must run after entering the alternate screen and before reading events.
+    state.set_picker(ui::detect_picker());
 
     while !app.should_quit {
         tui.terminal
@@ -119,6 +122,16 @@ fn main() -> io::Result<()> {
             let error = result.err().map(|err| err.to_string());
             app.refresh(None);
             app.editor_finished(launch.editor, error);
+        }
+
+        if let Some(path) = app.take_video_launch() {
+            tui.suspend()?;
+            let result = media::play_video(&path);
+            tui.resume()?;
+            app.refresh(None);
+            if let Err(err) = result {
+                app.set_error(format!("mpv: {err}"));
+            }
         }
 
         app.drain_preview();
