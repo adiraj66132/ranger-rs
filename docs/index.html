@@ -305,6 +305,25 @@ cargo build --release
   <code>/usr/local/bin</code>, and <code>PREFIX=/opt/bin ./install.sh</code>
   installs to a custom location.
 </p>
+<h3>Optional: Neovim config</h3>
+<p>
+  The installer can also set up the bundled Neovim config. It asks first, and
+  only when it has a terminal to ask on, so piping the script into
+  <code>sh</code> never touches your editor.
+</p>
+<pre><code>? install the bundled Neovim config to ~/.config/nvim? [y/N]</code></pre>
+<p>
+  Answer <code>y</code>, or pass <code>--nvim</code> to skip the question.
+  <code>--no-nvim</code> skips it outright. The config is LazyVim-based and
+  lives in <code>nvim/</code> in the repository.
+</p>
+<p>
+  If <code>~/.config/nvim</code> already exists, it is moved aside to
+  <code>~/.config/nvim.bak.YYYYMMDD-HHMMSS</code> before anything is written, so
+  an existing editor config is never overwritten in place. Dotfiles such as
+  <code>.ryoku-lazyvim</code> are included in the copy. Neovim itself is not
+  installed for you.
+</p>
 
 <h2 id="layout">Layout</h2>
 <p>The interface is borderless and built for density:</p>
