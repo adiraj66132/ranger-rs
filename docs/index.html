@@ -272,7 +272,8 @@
 <h2 id="install">Get started</h2>
 <p>
   Building from source needs Rust stable and a C compiler (Lua is vendored).
-  Linux and macOS are supported.
+  Linux and macOS are supported. The prebuilt installer needs <code>curl</code>
+  and <code>tar</code>.
 </p>
 <pre><code># Clone
 git clone https://github.com/adiraj66132/ranger-rs.git
@@ -293,6 +294,11 @@ cargo build --release
   This installs to <code>~/.local/bin</code> and adds an <code>rr</code>
   shortcut, so typing <code>rr</code> opens ranger-rs in the current directory.
   Supported platforms: Linux x86_64/arm64 and macOS Intel/Apple Silicon.
+</p>
+<p>
+  The installer prints a compact step-by-step summary. Set
+  <code>NO_COLOR=1</code> to disable color, or run
+  <code>./install.sh --help</code> for options.
 </p>
 <p>
   From a checkout, <code>./install.sh --system</code> installs to
