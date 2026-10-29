@@ -203,6 +203,7 @@
       <li><a href="#keys">Keybindings</a></li>
       <li><a href="#commands">Commands</a></li>
       <li><a href="#editors">Editors</a></li>
+      <li><a href="#media">Media previews</a></li>
       <li><a href="#config">Configuration</a></li>
       <li><a href="#themes">Themes</a></li>
       <li><a href="#plugins">Plugins</a></li>
@@ -238,8 +239,9 @@
 <p>
   <strong>Highlights:</strong> a borderless, dense three-column layout,
   <code>ls -F</code>-style type markers, text and directory previews with
-  configurable external previewers, editor and system-opener integration, a
-  floating info panel, a help overlay, nineteen themes, and Lua plugins.
+  configurable external previewers, image previews and video playback in the
+  terminal, editor and system-opener integration, a floating info panel, a help
+  overlay, nineteen themes, and Lua plugins.
 </p>
 
 <div id="related">
@@ -261,6 +263,7 @@
     <li><a href="#keys">Keys</a></li>
     <li><a href="#commands">Commands</a></li>
     <li><a href="#editors">Editors</a></li>
+    <li><a href="#media">Media previews</a></li>
     <li><a href="#config">Config</a></li>
     <li><a href="#themes">Themes</a></li>
     <li><a href="#plugins">Plugins</a></li>
@@ -273,7 +276,9 @@
 <p>
   Building from source needs Rust stable and a C compiler (Lua is vendored).
   Linux and macOS are supported. The prebuilt installer needs <code>curl</code>
-  and <code>tar</code>.
+  and <code>tar</code>. Media previews are optional and use <code>ffmpeg</code>
+  for video thumbnails and <code>mpv</code> for playback; both are detected at
+  runtime, and each falls back gracefully when missing.
 </p>
 <pre><code># Clone
 git clone https://github.com/adiraj66132/ranger-rs.git
@@ -371,7 +376,7 @@ cargo build --release
   <tr><td><kbd>Ctrl-d</kbd> / <kbd>Ctrl-u</kbd></td><td>Jump 10 down / up</td></tr>
   <tr><td><kbd>g</kbd> / <kbd>G</kbd></td><td>Top / bottom</td></tr>
   <tr><td><kbd>h</kbd> / <kbd>l</kbd></td><td>Parent directory / enter directory or open file</td></tr>
-  <tr><td><kbd>Enter</kbd></td><td>Enter directory or open file</td></tr>
+  <tr><td><kbd>Enter</kbd></td><td>Enter directory, open file, or play the selected video</td></tr>
   <tr><td><kbd>Tab</kbd></td><td>Info panel (size, owner, MIME type, timestamps)</td></tr>
   <tr><td><kbd>.</kbd></td><td>Toggle hidden files</td></tr>
   <tr><td><kbd>r</kbd></td><td>Reload directory</td></tr>
@@ -429,12 +434,38 @@ cargo build --release
   (<code>open</code> on macOS).
 </p>
 
+<h2 id="media">Media previews</h2>
+<p>
+  Images render directly in the preview pane when the terminal supports the
+  Kitty graphics protocol (or iTerm2's inline images). Video files show a single
+  frame extracted with <code>ffmpeg</code>, so the listing stays responsive.
+  Terminals without a graphics protocol keep the plain text preview.
+</p>
+<p>
+  Preview rendering is capped at 1024 pixels on the long edge, and video frames
+  are extracted under a four-second timeout. Set <code>preview_media = false</code>
+  to turn all of this off.
+</p>
+<p>
+  Pressing <kbd>Enter</kbd> on a video suspends the interface and plays it with
+  <code>mpv</code>: <code>--vo=kitty</code> in Kitty, and <code>--vo=tct</code>
+  elsewhere. Quitting mpv returns you to ranger-rs.
+</p>
+<p>
+  If protocol detection fails — inside <code>tmux</code> or <code>screen</code>,
+  for example — force it:
+</p>
+<pre><code>RANGER_RS_IMAGE_PROTOCOL=kitty ranger-rs
+RANGER_RS_IMAGE_PROTOCOL=iterm2 ranger-rs
+RANGER_RS_IMAGE_PROTOCOL=off ranger-rs</code></pre>
+
 <h2 id="config">Config</h2>
 <p>Create <code>~/.config/ranger-rs/config.toml</code> (see <code>config.example.toml</code>):</p>
 <pre><code>theme = "catppuccin-mocha"
 show_hidden = false
 preview_lines = 200
-preview_bytes = 65536</code></pre>
+preview_bytes = 65536
+preview_media = true</code></pre>
 <p>
   Optional external previewers: rules are checked top to bottom, the first
   matching rule wins. The selected path is available as

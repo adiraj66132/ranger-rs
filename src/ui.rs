@@ -1,10 +1,13 @@
 use crate::app::{App, Mode, HINTS};
 use crate::theme::Theme;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Modifier, Style};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, List, ListItem, ListState, Paragraph};
 use ratatui::Frame;
+use ratatui_image::picker::{Picker, ProtocolType};
+use ratatui_image::protocol::StatefulProtocol;
+use ratatui_image::{Resize, StatefulImage};
 use std::path::Path;
 use unicode_width::UnicodeWidthStr;
 
@@ -16,6 +19,40 @@ pub struct UiState {
     current: ListState,
     parent: ListState,
     theme: ListState,
+    picker: Option<Picker>,
+    image: Option<StatefulProtocol>,
+    image_key: Option<(u64, u16, u16)>,
+}
+
+impl UiState {
+    pub fn set_picker(&mut self, picker: Option<Picker>) {
+        self.picker = picker;
+    }
+}
+
+/// Ask the terminal which graphics protocol it speaks, once at startup.
+/// Returns `None` when stdio is not a terminal, so tests and pipes stay quiet.
+///
+/// `RANGER_RS_IMAGE_PROTOCOL=kitty|iterm2|off` overrides detection, which is
+/// useful inside tmux or screen where the query often gets swallowed.
+pub fn detect_picker() -> Option<Picker> {
+    use std::io::IsTerminal;
+
+    if let Ok(forced) = std::env::var("RANGER_RS_IMAGE_PROTOCOL") {
+        let mut picker = Picker::halfblocks();
+        match forced.to_ascii_lowercase().as_str() {
+            "kitty" => picker.set_protocol_type(ProtocolType::Kitty),
+            "iterm2" => picker.set_protocol_type(ProtocolType::Iterm2),
+            "off" | "none" | "halfblocks" => return None,
+            _ => {}
+        }
+        return Some(picker);
+    }
+
+    if !std::io::stdin().is_terminal() || !std::io::stdout().is_terminal() {
+        return None;
+    }
+    Picker::from_query_stdio().ok()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -189,11 +226,15 @@ fn draw_headers(frame: &mut Frame, app: &App, area: Rect) {
         true,
     );
     if let Some(preview) = columns.preview {
-        let title = app
+        let mut title = app
             .entries
             .get(app.selected)
             .map(row::display_name)
             .unwrap_or_else(|| "preview".into());
+        if let Some(media) = app.preview_frame.as_ref() {
+            title.push_str("  ");
+            title.push_str(&media.caption);
+        }
         draw_header(frame, &title, preview, app.theme, false);
     }
 }
@@ -215,7 +256,7 @@ fn draw_body(frame: &mut Frame, app: &App, state: &mut UiState, area: Rect) {
     }
     draw_current(frame, app, state, columns.current);
     if let Some(preview) = columns.preview {
-        draw_preview(frame, app, preview);
+        draw_preview(frame, app, state, preview);
     }
     for divider in columns.dividers {
         draw_vertical(frame, divider, app.theme);
@@ -268,7 +309,11 @@ fn draw_current(frame: &mut Frame, app: &App, state: &mut UiState, area: Rect) {
     frame.render_stateful_widget(list, area, &mut state.current);
 }
 
-fn draw_preview(frame: &mut Frame, app: &App, area: Rect) {
+fn draw_preview(frame: &mut Frame, app: &App, state: &mut UiState, area: Rect) {
+    if draw_media(frame, app, state, area) {
+        return;
+    }
+
     let width = area.width as usize;
     let lines: Vec<Line> = app
         .preview_lines
@@ -283,6 +328,50 @@ fn draw_preview(frame: &mut Frame, app: &App, area: Rect) {
         .collect();
     let paragraph = Paragraph::new(lines).style(Style::default().bg(app.theme.bg));
     frame.render_widget(paragraph, area);
+}
+
+/// Paint the decoded image into the pane when the terminal speaks a graphics
+/// protocol. Returns false when the caller should fall back to text.
+fn draw_media(frame: &mut Frame, app: &App, state: &mut UiState, area: Rect) -> bool {
+    let Some(media) = app.preview_frame.as_ref() else {
+        // Dropping the protocol releases the kitty image with its cells.
+        state.image = None;
+        state.image_key = None;
+        return false;
+    };
+    let Some(picker) = state.picker.as_ref() else {
+        return false;
+    };
+    if !matches!(
+        picker.protocol_type(),
+        ProtocolType::Kitty | ProtocolType::Iterm2
+    ) {
+        return false;
+    }
+    if area.width < 4 || area.height < 2 {
+        return false;
+    }
+
+    let key = (app.preview_generation(), area.width, area.height);
+    if state.image_key != Some(key) {
+        state.image = Some(picker.new_resize_protocol(media.image.clone()));
+        state.image_key = Some(key);
+    }
+    let Some(protocol) = state.image.as_mut() else {
+        return false;
+    };
+    // The frame is painted with the theme background; an opaque cell background
+    // would sit on top of the graphics layer, so punch a transparent hole.
+    frame.render_widget(
+        Block::default().style(Style::default().bg(Color::Reset)),
+        area,
+    );
+    frame.render_stateful_widget(
+        StatefulImage::default().resize(Resize::Fit(None)),
+        area,
+        protocol,
+    );
+    true
 }
 
 fn draw_footer(frame: &mut Frame, app: &App, area: Rect) {

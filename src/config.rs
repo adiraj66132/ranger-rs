@@ -8,6 +8,7 @@ pub struct Config {
     pub show_hidden: bool,
     pub preview_lines: usize,
     pub preview_bytes: usize,
+    pub preview_media: bool,
     pub scope: Vec<ScopeRule>,
 }
 
@@ -31,6 +32,7 @@ impl Default for Config {
             show_hidden: false,
             preview_lines: 200,
             preview_bytes: 64 * 1024,
+            preview_media: true,
             scope: Vec::new(),
         }
     }

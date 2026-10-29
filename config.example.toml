@@ -3,12 +3,18 @@
 
 # Built-ins: default, catppuccin-mocha, catppuccin-macchiato,
 # catppuccin-frappe, catppuccin-latte, tokyo-night, tokyo-night-storm,
-# tokyo-night-day, nord, dracula, gruvbox.
+# tokyo-night-day, rose-pine, rose-pine-moon, rose-pine-dawn,
+# solarized-dark, solarized-light, nord, dracula, gruvbox, kanagawa,
+# everforest, one-dark.
 theme = "catppuccin-mocha"
 
 show_hidden = false
 preview_lines = 200
 preview_bytes = 65536
+
+# Draw images (and a frame of each video) in the preview pane using the
+# terminal's graphics protocol. Set to false for text-only previews.
+preview_media = true
 
 # Optional external previewers. Rules are checked top to bottom; the first
 # matching rule wins. The selected path is available as $RANGER_RS_PATH.

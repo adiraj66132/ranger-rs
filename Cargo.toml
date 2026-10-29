@@ -1,6 +1,6 @@
 [package]
 name = "ranger-rs"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 description = "A fast, Vim-powered terminal file manager in Rust"
 
@@ -12,6 +12,16 @@ toml = "0.8"
 mlua = { version = "0.9", features = ["lua54", "vendored"] }
 mime_guess = "2"
 unicode-width = "0.2"
+ratatui-image = { version = "9", default-features = false }
+image = { version = "0.25", default-features = false, features = [
+    "bmp",
+    "gif",
+    "ico",
+    "jpeg",
+    "png",
+    "tiff",
+    "webp",
+] }
 
 [profile.release]
 opt-level = 3

@@ -19,6 +19,7 @@ Inspired by:
 - Vim-style navigation and commands.
 - `ls -F`-style type markers (`dir/`, `link@`, `exec*`) and right-aligned sizes.
 - Text and directory previews, plus configurable external previewers.
+- Image previews and video playback in the terminal, using the Kitty graphics protocol and mpv.
 - Files that look like text open in your editor; everything else opens with the system opener.
 - Floating info panel with size, owner, permissions, timestamps, and MIME type.
 - Help overlay for every key and command.
@@ -32,6 +33,7 @@ Inspired by:
 - When building from source: Rust stable and a C compiler (Lua is vendored).
 - `curl` and `tar` for the prebuilt installer.
 - `xdg-open` on Linux or `open` on macOS to open non-text files.
+- Optional: `ffmpeg` for video thumbnails, and `mpv` for playing videos in the terminal. Both are detected at runtime: without `ffmpeg` a video gets the plain text preview, and without `mpv` it opens with the system opener.
 
 ## Install
 
@@ -122,7 +124,7 @@ The interface is borderless and built for density:
 | `Ctrl-d` / `Ctrl-u` | Jump 10 down / up |
 | `g` / `G` | Top / bottom |
 | `h` / `l` | Parent directory / enter directory or open file |
-| `Enter` | Enter directory or open file |
+| `Enter` | Enter directory, open file, or play the selected video |
 | `Tab` | Info panel (size, owner, MIME type, timestamps) |
 | `.` | Toggle hidden files |
 | `r` | Reload directory |
@@ -179,12 +181,30 @@ Create `~/.config/ranger-rs/config.toml`, or `$XDG_CONFIG_HOME/ranger-rs/config.
 | `show_hidden` | `false` | Show dotfiles |
 | `preview_lines` | `200` | Maximum lines in the preview pane |
 | `preview_bytes` | `65536` | Maximum bytes read for text previews |
+| `preview_media` | `true` | Draw images and video frames in the preview pane |
 
 ```toml
 theme = "catppuccin-mocha"
 show_hidden = false
 preview_lines = 200
 preview_bytes = 65536
+preview_media = true
+```
+
+### Media previews
+
+Images render directly in the preview pane when the terminal supports the Kitty graphics protocol (or iTerm2's inline images). Video files show a single extracted frame, so the listing stays responsive. Terminals without a graphics protocol keep the plain text preview.
+
+Preview rendering is capped at 1024 pixels on the long edge, and video frames are extracted with `ffmpeg` under a four-second timeout. Set `preview_media = false` to turn all of this off.
+
+Pressing `Enter` on a video suspends the interface and plays it with `mpv`: `--vo=kitty` in Kitty, and `--vo=tct` elsewhere. Quitting mpv returns you to ranger-rs.
+
+If protocol detection fails — inside `tmux` or `screen`, for example — force it:
+
+```sh
+RANGER_RS_IMAGE_PROTOCOL=kitty ranger-rs
+RANGER_RS_IMAGE_PROTOCOL=iterm2 ranger-rs
+RANGER_RS_IMAGE_PROTOCOL=off ranger-rs
 ```
 
 ### External previewers

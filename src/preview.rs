@@ -1,5 +1,6 @@
 use crate::config::{Config, ScopeRule};
 use crate::fs;
+use crate::media;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -11,6 +12,7 @@ use std::time::{Duration, Instant};
 pub struct PreviewMessage {
     pub generation: u64,
     pub lines: Vec<String>,
+    pub frame: Option<media::Frame>,
 }
 
 pub fn request(
@@ -21,8 +23,12 @@ pub fn request(
 ) {
     // shortcut: one thread per selection change; debounce if huge trees make this expensive.
     thread::spawn(move || {
-        let lines = generate(&path, &config);
-        let _ = tx.send(PreviewMessage { generation, lines });
+        let (lines, frame) = generate(&path, &config);
+        let _ = tx.send(PreviewMessage {
+            generation,
+            lines,
+            frame,
+        });
     });
 }
 
@@ -44,16 +50,16 @@ pub fn looks_text(path: &Path) -> bool {
     !sample.contains(&0)
 }
 
-fn generate(path: &Path, config: &Config) -> Vec<String> {
+fn generate(path: &Path, config: &Config) -> (Vec<String>, Option<media::Frame>) {
     let Ok(meta) = std::fs::metadata(path) else {
-        return vec!["(unreadable)".into()];
+        return (vec!["(unreadable)".into()], None);
     };
     if meta.is_dir() {
-        return directory_preview(path, config);
+        return (directory_preview(path, config), None);
     }
     if !meta.file_type().is_file() {
         // FIFOs, sockets and devices can block forever when opened.
-        return vec!["(special file)".into()];
+        return (vec!["(special file)".into()], None);
     }
 
     let name = path
@@ -65,16 +71,26 @@ fn generate(path: &Path, config: &Config) -> Vec<String> {
             continue;
         }
         match run_scope(rule, path, config.preview_lines) {
-            Ok(lines) if !lines.is_empty() => return lines,
+            Ok(lines) if !lines.is_empty() => return (lines, None),
             Ok(_) => break,
             Err(err) => {
                 let mut lines = vec![format!("[scope: {err}]")];
                 lines.extend(file_preview(path, config));
-                return lines;
+                return (lines, None);
             }
         }
     }
-    file_preview(path, config)
+
+    if config.preview_media {
+        if let Some(kind) = media::kind_of(path) {
+            if let Some(frame) = media::preview(path, kind) {
+                let lines = vec![format!("({})", kind.label())];
+                return (lines, Some(frame));
+            }
+        }
+    }
+
+    (file_preview(path, config), None)
 }
 
 fn directory_preview(path: &Path, config: &Config) -> Vec<String> {
@@ -253,7 +269,10 @@ mod tests {
             let _ = tx.send(looks_text(&path));
         });
         assert_eq!(rx.recv_timeout(Duration::from_secs(2)), Ok(false));
-        assert_eq!(generate(&fifo, &Config::default()), vec!["(special file)"]);
+        assert_eq!(
+            generate(&fifo, &Config::default()).0,
+            vec!["(special file)"]
+        );
         std::fs::remove_dir_all(dir).unwrap();
     }
 
