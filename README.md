@@ -30,6 +30,7 @@ Inspired by:
 
 - Linux or macOS. The code uses Unix filesystem APIs.
 - When building from source: Rust stable and a C compiler (Lua is vendored).
+- `curl` and `tar` for the prebuilt installer.
 - `xdg-open` on Linux or `open` on macOS to open non-text files.
 
 ## Install
@@ -40,7 +41,7 @@ Inspired by:
 curl -fsSL https://raw.githubusercontent.com/adiraj66132/ranger-rs/master/install.sh | sh
 ```
 
-This downloads the latest release and installs `ranger-rs` plus the `rr` shortcut to `~/.local/bin`.
+This downloads the latest release and installs `ranger-rs` plus the `rr` shortcut to `~/.local/bin`. The installer prints a compact step-by-step summary; set `NO_COLOR=1` to disable color, or run `./install.sh --help` for options.
 
 Prebuilt targets:
 
