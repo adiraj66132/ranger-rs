@@ -1,6 +1,6 @@
 [package]
 name = "ranger-rs"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 description = "A fast, Vim-powered terminal file manager in Rust"
 
@@ -11,6 +11,7 @@ serde = { version = "1", features = ["derive"] }
 toml = "0.8"
 mlua = { version = "0.9", features = ["lua54", "vendored"] }
 mime_guess = "2"
+unicode-width = "0.2"
 
 [profile.release]
 opt-level = 3

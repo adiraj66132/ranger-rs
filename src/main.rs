@@ -93,12 +93,7 @@ fn main() -> io::Result<()> {
     let (config, warnings) = Config::load();
     let mut app = App::new(start, config);
     if !warnings.is_empty() {
-        let prefix = warnings.join(" | ");
-        app.status = if app.status.is_empty() {
-            prefix
-        } else {
-            format!("{prefix} | {}", app.status)
-        };
+        app.add_warning(warnings.join(" | "));
     }
 
     let mut tui = Tui::new()?;
@@ -127,6 +122,7 @@ fn main() -> io::Result<()> {
         }
 
         app.drain_preview();
+        app.tick();
     }
 
     Ok(())

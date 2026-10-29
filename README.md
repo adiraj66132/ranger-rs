@@ -15,11 +15,13 @@ Inspired by:
 
 ## Features
 
-- Three-column miller layout: parent directory, current directory, preview.
+- Borderless, dense three-column layout: parent directory, current directory, preview.
 - Vim-style navigation and commands.
+- `ls -F`-style type markers (`dir/`, `link@`, `exec*`) and right-aligned sizes.
 - Text and directory previews, plus configurable external previewers.
 - Files that look like text open in your editor; everything else opens with the system opener.
 - Floating info panel with size, owner, permissions, timestamps, and MIME type.
+- Help overlay for every key and command.
 - Eleven built-in themes with a live theme picker.
 - Lua plugins for custom commands and single-key bindings.
 - No Python runtime.
@@ -72,7 +74,30 @@ ranger-rs [PATH]
 
 With no path, ranger-rs starts in the current directory. `--help` and `--version` print information and exit.
 
-Press `?` inside the app to show the key hints. Hidden files are off by default; toggle them with `.`.
+Press `?` inside the app for the help overlay. Hidden files are off by default; toggle them with `.`.
+
+## Layout
+
+The interface is borderless and built for density:
+
+```text
+ ~/Work/git                    ~/Work/git/ranger-rs          app.rs
+──────────────────────────────────────────────────────────────────────
+ ..                           .github/                      1  use crate::...
+ dotfiles/                    docs/                         2  use crate::editor;
+ ranger-rs/                   plugins/                      3  use crate::fs::{...
+ scratch/                     src/                          4
+ > scratch/                   target/                       5
+──────────────────────────────────────────────────────────────────────
+ j/k move  h/l dirs  . hidden  tab info  : command  ? help   app.rs  2.1K
+```
+
+- A thin rule separates the header from the listing; columns are separated by single-cell dividers, not boxes.
+- One accent color marks directories and the selected row. Everything else is neutral text.
+- The selected row uses a subtle background plus a `>` marker, so selection does not depend on color.
+- Rows use `ls -F`-style markers (`dir/`, `link@`, `exec*`) and right-aligned sizes. Directories show `-` instead of a size.
+- The parent column drops first on narrow terminals, then the preview. The current column always stays usable.
+- The footer keeps the key hints visible. Status messages replace them for about four seconds and then expire.
 
 ## Keys
 
@@ -89,10 +114,10 @@ Press `?` inside the app to show the key hints. Hidden files are off by default;
 | `~` | Go to home |
 | `:` or `/` | Open the command line |
 | `T` | Theme picker |
-| `?` | Show key hints |
+| `?` | Open the help overlay (`j`/`k` scrolls, `?` closes) |
 | `q` / `Ctrl-c` | Quit |
 
-In the theme picker, `j`/`k` or the arrow keys cycle, `g`/`G` jump to the ends, `Enter` saves, and `Esc`/`q` cancels. On the command line, `Esc` cancels and `Ctrl-u` clears the input.
+In the theme picker, `j`/`k` or the arrow keys cycle, `g`/`G` jump to the ends, `Enter` saves, and `Esc`/`q` cancels. Each row has a small swatch so the palette is visible without repainting the whole row. On the command line, `Esc` cancels and `Ctrl-u` clears the input.
 
 ## Commands
 
@@ -108,7 +133,7 @@ Type them after `:` or `/`:
 | `:reload` | Reload the current directory |
 | `:hidden`, `:toggle_hidden` | Toggle hidden files |
 | `:pwd` | Show the current path |
-| `:help` | Show the key hints |
+| `:help` | Open the help overlay |
 | `:theme [name]` | Switch theme (no name: open the picker) |
 | `:themes` | List built-in themes |
 | `:<name>` | Run a plugin command |

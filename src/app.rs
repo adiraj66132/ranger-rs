@@ -10,13 +10,45 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
     Normal,
     Command,
     ThemePicker,
+    Help,
 }
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum StatusKind {
+    Info,
+    Success,
+    Warning,
+    Error,
+}
+
+pub struct Status {
+    pub text: String,
+    pub kind: StatusKind,
+    pub shown_at: Instant,
+}
+
+impl Status {
+    fn empty() -> Self {
+        Self {
+            text: String::new(),
+            kind: StatusKind::Info,
+            shown_at: Instant::now(),
+        }
+    }
+
+    fn visible(&self) -> bool {
+        !self.text.is_empty() && self.shown_at.elapsed() < STATUS_TTL
+    }
+}
+
+pub const STATUS_TTL: Duration = Duration::from_secs(4);
 
 pub struct EditorLaunch {
     pub editor: editor::Editor,
@@ -35,7 +67,8 @@ pub struct App {
     pub mode: Mode,
     pub input: String,
     pub prompt: char,
-    pub status: String,
+    pub status: Status,
+    pub help_scroll: usize,
     pub config: Config,
     pub theme: &'static Theme,
     pub theme_choice: usize,
@@ -85,7 +118,8 @@ impl App {
             mode: Mode::Normal,
             input: String::new(),
             prompt: ':',
-            status: String::new(),
+            status: Status::empty(),
+            help_scroll: 0,
             config,
             theme,
             theme_choice: 0,
@@ -102,13 +136,56 @@ impl App {
             plugin,
         };
         app.refresh(None);
-        if !warnings.is_empty() {
-            if !app.status.is_empty() {
-                warnings.push(app.status.clone());
-            }
-            app.status = warnings.join(" | ");
+        for warning in warnings {
+            app.add_warning(warning);
         }
         app
+    }
+
+    pub fn set_status(&mut self, text: impl Into<String>) {
+        self.status.text = text.into();
+        self.status.kind = StatusKind::Info;
+        self.status.shown_at = Instant::now();
+    }
+
+    pub fn set_success(&mut self, text: impl Into<String>) {
+        self.status.text = text.into();
+        self.status.kind = StatusKind::Success;
+        self.status.shown_at = Instant::now();
+    }
+
+    pub fn set_warning(&mut self, text: impl Into<String>) {
+        self.status.text = text.into();
+        self.status.kind = StatusKind::Warning;
+        self.status.shown_at = Instant::now();
+    }
+
+    pub fn set_error(&mut self, text: impl Into<String>) {
+        self.status.text = text.into();
+        self.status.kind = StatusKind::Error;
+        self.status.shown_at = Instant::now();
+    }
+
+    pub fn add_warning(&mut self, text: impl Into<String>) {
+        let text = text.into();
+        if self.status.text.is_empty() {
+            self.set_warning(text);
+        } else {
+            self.status.text = format!("{} | {text}", self.status.text);
+            self.status.kind = StatusKind::Warning;
+            self.status.shown_at = Instant::now();
+        }
+    }
+
+    pub fn clear_status(&mut self) {
+        self.status.text.clear();
+    }
+
+    /// Expire transient messages so the key hints come back on their own.
+    pub fn tick(&mut self) {
+        if !self.status.text.is_empty() && !self.status.visible() {
+            self.clear_status();
+        }
     }
 
     pub fn refresh(&mut self, keep: Option<&str>) {
@@ -133,7 +210,7 @@ impl App {
             Err(err) => {
                 self.entries.clear();
                 self.selected = 0;
-                self.status = format!("{}: {err}", self.cwd.display());
+                self.set_error(format!("{}: {err}", self.cwd.display()));
             }
         }
         self.refresh_parent();
@@ -241,12 +318,12 @@ impl App {
                 self.cwd = path;
                 self.entries.clear();
                 self.selected = 0;
-                self.status.clear();
+                self.clear_status();
                 self.sync_cwd();
                 self.refresh(None);
             }
-            Ok(_) => self.status = format!("not a directory: {}", path.display()),
-            Err(err) => self.status = format!("{}: {err}", path.display()),
+            Ok(_) => self.set_error(format!("not a directory: {}", path.display())),
+            Err(err) => self.set_error(format!("{}: {err}", path.display())),
         }
     }
 
@@ -260,18 +337,18 @@ impl App {
             .map(|name| name.to_string_lossy().into_owned());
         self.cwd = parent;
         self.selected = 0;
-        self.status.clear();
+        self.clear_status();
         self.sync_cwd();
         self.refresh(previous.as_deref());
     }
 
     fn toggle_hidden(&mut self) {
         self.config.show_hidden = !self.config.show_hidden;
-        self.status = if self.config.show_hidden {
-            "hidden files: on".into()
+        self.set_status(if self.config.show_hidden {
+            "hidden files: on"
         } else {
-            "hidden files: off".into()
-        };
+            "hidden files: off"
+        });
         self.refresh(None);
     }
 
@@ -294,7 +371,7 @@ impl App {
             self.editor_checked = true;
         }
         let Some(editor) = self.editor else {
-            self.status = "No editor found. Install vim or nvim (or nano).".into();
+            self.set_error("No editor found. Install vim or nvim (or nano).");
             return;
         };
         self.editor_launch = Some(EditorLaunch { editor, path });
@@ -305,14 +382,14 @@ impl App {
     }
 
     pub fn editor_finished(&mut self, editor: editor::Editor, error: Option<String>) {
-        self.status = match error {
-            Some(err) => format!("{}: {err}", editor.program),
-            None if editor.is_fallback() => format!(
+        match error {
+            Some(err) => self.set_error(format!("{}: {err}", editor.program)),
+            None if editor.is_fallback() => self.set_warning(format!(
                 "Opened with {}. Install vim or nvim for the native experience.",
                 editor.display_name()
-            ),
-            None => format!("Opened with {}", editor.display_name()),
-        };
+            )),
+            None => self.set_success(format!("Opened with {}", editor.display_name())),
+        }
     }
 
     fn open_path(&mut self, path: &std::path::Path) {
@@ -327,8 +404,8 @@ impl App {
             .stderr(Stdio::null())
             .spawn()
         {
-            Ok(_) => self.status = format!("opened {}", path.display()),
-            Err(err) => self.status = format!("{opener}: {err}"),
+            Ok(_) => self.set_success(format!("opened {}", path.display())),
+            Err(err) => self.set_error(format!("{opener}: {err}")),
         }
     }
 
@@ -343,37 +420,37 @@ impl App {
 
     fn make_dir(&mut self, arg: &str) {
         if arg.is_empty() {
-            self.status = "usage: :mkdir <path>".into();
+            self.set_warning("usage: :mkdir <path>");
             return;
         }
         let path = self.resolve(arg);
         match std::fs::create_dir_all(&path) {
             Ok(()) => {
-                self.status = format!("created {}", path.display());
+                self.set_success(format!("created {}", path.display()));
                 let name = path
                     .file_name()
                     .map(|name| name.to_string_lossy().into_owned());
                 self.refresh(name.as_deref());
             }
-            Err(err) => self.status = format!("mkdir {}: {err}", path.display()),
+            Err(err) => self.set_error(format!("mkdir {}: {err}", path.display())),
         }
     }
 
     fn touch_file(&mut self, arg: &str) {
         if arg.is_empty() {
-            self.status = "usage: :touch <path>".into();
+            self.set_warning("usage: :touch <path>");
             return;
         }
         let path = self.resolve(arg);
         match touch_path(&path) {
             Ok(_) => {
-                self.status = format!("created {}", path.display());
+                self.set_success(format!("created {}", path.display()));
                 let name = path
                     .file_name()
                     .map(|name| name.to_string_lossy().into_owned());
                 self.refresh(name.as_deref());
             }
-            Err(err) => self.status = format!("touch {}: {err}", path.display()),
+            Err(err) => self.set_error(format!("touch {}: {err}", path.display())),
         }
     }
 
@@ -404,10 +481,10 @@ impl App {
             "reload" => self.refresh(None),
             "hidden" | "toggle_hidden" => self.toggle_hidden(),
             "open" => self.open_selected(),
-            "pwd" => self.status = self.cwd.display().to_string(),
-            "help" => self.status = HINTS.into(),
+            "pwd" => self.set_status(self.cwd.display().to_string()),
+            "help" => self.open_help(),
             "theme" => self.set_theme(args),
-            "themes" => self.status = theme::names().join(", "),
+            "themes" => self.set_status(theme::names().join(", ")),
             _ => self.run_plugin_command(command, args),
         }
     }
@@ -421,12 +498,14 @@ impl App {
             Some(theme) => {
                 self.theme = theme;
                 self.config.theme = theme.name.into();
-                self.status = match config::save_theme(theme.name) {
-                    Ok(()) => format!("theme: {} (saved)", theme.name),
-                    Err(err) => format!("theme: {} (not saved: {err})", theme.name),
-                };
+                match config::save_theme(theme.name) {
+                    Ok(()) => self.set_success(format!("theme: {} (saved)", theme.name)),
+                    Err(err) => {
+                        self.set_warning(format!("theme: {} (not saved: {err})", theme.name))
+                    }
+                }
             }
-            None => self.status = format!("unknown theme: {name}"),
+            None => self.set_error(format!("unknown theme: {name}")),
         }
     }
 
@@ -438,7 +517,27 @@ impl App {
         self.theme_original = Some(self.theme);
         self.mode = Mode::ThemePicker;
         self.input.clear();
-        self.status.clear();
+        self.clear_status();
+    }
+
+    fn open_help(&mut self) {
+        self.mode = Mode::Help;
+        self.help_scroll = 0;
+        self.input.clear();
+    }
+
+    fn close_help(&mut self) {
+        self.mode = Mode::Normal;
+        self.help_scroll = 0;
+    }
+
+    fn scroll_help(&mut self, delta: isize) {
+        let max = HELP_KEYS.len() + HELP_COMMANDS.len() + 4;
+        self.help_scroll = if delta < 0 {
+            self.help_scroll.saturating_sub(delta.unsigned_abs())
+        } else {
+            self.help_scroll.saturating_add(delta as usize).min(max)
+        };
     }
 
     fn move_theme_choice(&mut self, delta: isize) {
@@ -465,13 +564,13 @@ impl App {
             let theme = theme::all()[self.theme_choice];
             self.theme = theme;
             self.config.theme = theme.name.into();
-            self.status = match config::save_theme(theme.name) {
-                Ok(()) => format!("theme: {} (saved)", theme.name),
-                Err(err) => format!("theme: {} (not saved: {err})", theme.name),
-            };
+            match config::save_theme(theme.name) {
+                Ok(()) => self.set_success(format!("theme: {} (saved)", theme.name)),
+                Err(err) => self.set_warning(format!("theme: {} (not saved: {err})", theme.name)),
+            }
         } else if let Some(original) = self.theme_original {
             self.theme = original;
-            self.status.clear();
+            self.clear_status();
         }
         self.theme_original = None;
         self.mode = Mode::Normal;
@@ -484,8 +583,8 @@ impl App {
             .map(|plugin| plugin.run_command(command, args));
         match result {
             Some(Ok(())) => {}
-            Some(Err(err)) => self.status = err,
-            None => self.status = format!("unknown command: {command}"),
+            Some(Err(err)) => self.set_error(err),
+            None => self.set_error(format!("unknown command: {command}")),
         }
         self.drain_actions();
     }
@@ -498,7 +597,7 @@ impl App {
         for action in actions {
             match action {
                 Action::Cd(path) => self.change_dir(path),
-                Action::Notify(message) => self.status = message,
+                Action::Notify(message) => self.set_status(message),
                 Action::Quit => self.should_quit = true,
                 Action::Reload => self.refresh(None),
                 Action::ToggleHidden => self.toggle_hidden(),
@@ -516,6 +615,23 @@ impl App {
             Mode::Command => self.handle_command_key(key),
             Mode::Normal => self.handle_normal_key(key),
             Mode::ThemePicker => self.handle_theme_picker_key(key),
+            Mode::Help => self.handle_help_key(key),
+        }
+    }
+
+    fn handle_help_key(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Esc | KeyCode::Char('?') | KeyCode::Char('q') => self.close_help(),
+            KeyCode::Char('j') | KeyCode::Down => self.scroll_help(1),
+            KeyCode::Char('k') | KeyCode::Up => self.scroll_help(-1),
+            KeyCode::PageDown => self.scroll_help(10),
+            KeyCode::PageUp => self.scroll_help(-10),
+            KeyCode::Char('g') | KeyCode::Home => self.help_scroll = 0,
+            KeyCode::Char('G') | KeyCode::End => self.scroll_help(isize::MAX / 2),
+            KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.close_help()
+            }
+            _ => {}
         }
     }
 
@@ -595,7 +711,7 @@ impl App {
                 self.input.clear();
             }
             KeyCode::Char('T') => self.open_theme_picker(),
-            KeyCode::Char('?') => self.status = HINTS.into(),
+            KeyCode::Char('?') => self.open_help(),
             KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                 self.should_quit = true;
             }
@@ -624,8 +740,38 @@ fn touch_path(path: &std::path::Path) -> std::io::Result<()> {
         .map(|_| ())
 }
 
-pub const HINTS: &str =
-    "j/k move  h/l dirs  g/G top/bottom  enter open  . hidden  tab info  r reload  T theme  : command  q quit";
+pub const HINTS: &str = "j/k move  h/l dirs  g/G ends  . hidden  tab info  : command  ? help";
+
+pub const HELP_KEYS: &[(&str, &str)] = &[
+    ("j / k", "move down / up"),
+    ("Ctrl-d / Ctrl-u", "jump 10 down / up"),
+    ("g / G", "first / last entry"),
+    ("h / l", "parent directory / open"),
+    ("Enter", "enter directory or open file"),
+    (".", "toggle hidden files"),
+    ("r", "reload directory"),
+    ("~", "go to home"),
+    ("Tab", "info panel"),
+    ("T", "theme picker"),
+    (": or /", "command line"),
+    ("?", "open or close this help"),
+    ("q / Ctrl-c", "quit"),
+];
+
+pub const HELP_COMMANDS: &[(&str, &str)] = &[
+    (":q, :quit", "quit"),
+    (":cd [path]", "change directory (no path: home)"),
+    (":mkdir PATH", "create a directory"),
+    (":touch PATH", "create a file"),
+    (":open", "open the selection"),
+    (":reload", "reload the current directory"),
+    (":hidden", "toggle hidden files"),
+    (":pwd", "print the working directory"),
+    (":help", "show this help"),
+    (":theme [NAME]", "switch theme (no name: picker)"),
+    (":themes", "list built-in themes"),
+    (":NAME", "run a plugin command"),
+];
 
 #[cfg(test)]
 mod tests {
@@ -650,6 +796,18 @@ mod tests {
             "important contents\n"
         );
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn statuses_expire_after_the_ttl() {
+        let mut status = Status::empty();
+        status.text = "saved".into();
+        status.kind = StatusKind::Error;
+        status.shown_at = Instant::now() - STATUS_TTL - Duration::from_millis(1);
+        assert!(!status.visible());
+
+        status.shown_at = Instant::now();
+        assert!(status.visible());
     }
 
     #[test]
