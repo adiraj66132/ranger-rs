@@ -22,7 +22,7 @@ Inspired by:
 - Files that look like text open in your editor; everything else opens with the system opener.
 - Floating info panel with size, owner, permissions, timestamps, and MIME type.
 - Help overlay for every key and command.
-- Eleven built-in themes with a live theme picker.
+- Nineteen built-in themes with a live theme picker.
 - Lua plugins for custom commands and single-key bindings.
 - No Python runtime.
 
@@ -207,9 +207,9 @@ timeout_ms = 1500
 
 ## Themes
 
-Built-in themes: `default`, `catppuccin-mocha`, `catppuccin-macchiato`, `catppuccin-frappe`, `catppuccin-latte`, `tokyo-night`, `tokyo-night-storm`, `tokyo-night-day`, `nord`, `dracula`, `gruvbox`.
+Built-in themes: `default`, `catppuccin-mocha`, `catppuccin-macchiato`, `catppuccin-frappe`, `catppuccin-latte`, `tokyo-night`, `tokyo-night-storm`, `tokyo-night-day`, `rose-pine`, `rose-pine-moon`, `rose-pine-dawn`, `solarized-dark`, `solarized-light`, `nord`, `dracula`, `gruvbox`, `kanagawa`, `everforest`, `one-dark`.
 
-Press `T` or run `:theme <name>` to switch. The picker shows a live preview; confirming a theme saves it to `config.toml`.
+Press `T` or run `:theme <name>` to switch. The picker shows a live preview; confirming a theme saves it to `config.toml`. Short names work too: `catppuccin`, `tokyo`, `solarized`, `rosepine`, `onedark`.
 
 ## Plugins
 
