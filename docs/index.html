@@ -227,13 +227,18 @@
 <p>
   ranger-rs is a Rust reimplementation of
   <a href="https://github.com/ranger/ranger">ranger</a>, the Vim-powered console
-  file manager. It keeps ranger's keybindings and ideas but is rebuilt from
-  scratch in Rust — no Python at startup.
+  file manager. It keeps ranger's three-column layout and Vim keybindings but is
+  rebuilt from scratch in Rust — no Python at startup.
 </p>
 <p>
   Inspired by <a href="https://github.com/ranger/ranger">ranger</a> (the original
   Python file manager) and <a href="https://github.com/sxyazi/yazi">yazi</a>
   (the floating info panel on <kbd>Tab</kbd>).
+</p>
+<p>
+  <strong>Highlights:</strong> three-column miller layout, text and directory
+  previews with configurable external previewers, editor and system-opener
+  integration, a floating info panel, eleven themes, and Lua plugins.
 </p>
 
 <div id="related">
@@ -262,8 +267,12 @@
 <div class="clear"></div>
 
 <h2 id="install">Get started</h2>
+<p>
+  Building from source needs Rust stable and a C compiler (Lua is vendored).
+  Linux and macOS are supported.
+</p>
 <pre><code># Clone
-git clone git@github.com:adiraj66132/ranger-rs.git
+git clone https://github.com/adiraj66132/ranger-rs.git
 cd ranger-rs
 
 # Build
@@ -271,6 +280,10 @@ cargo build --release
 
 # Run
 ./target/release/ranger-rs /path/to/directory</code></pre>
+<p>
+  With no path, ranger-rs starts in the current directory.
+  <code>--help</code> and <code>--version</code> print information and exit.
+</p>
 <p>Or install the latest prebuilt binary:</p>
 <pre><code>curl -fsSL https://raw.githubusercontent.com/adiraj66132/ranger-rs/master/install.sh | sh</code></pre>
 <p>
@@ -296,30 +309,42 @@ cargo build --release
   <tr><td><kbd>.</kbd></td><td>Toggle hidden files</td></tr>
   <tr><td><kbd>r</kbd></td><td>Reload directory</td></tr>
   <tr><td><kbd>~</kbd></td><td>Go to home</td></tr>
-  <tr><td><kbd>:</kbd></td><td>Command line</td></tr>
+  <tr><td><kbd>:</kbd> or <kbd>/</kbd></td><td>Open the command line</td></tr>
   <tr><td><kbd>T</kbd></td><td>Theme picker</td></tr>
   <tr><td><kbd>?</kbd></td><td>Show key hints</td></tr>
-  <tr><td><kbd>q</kbd></td><td>Quit</td></tr>
+  <tr><td><kbd>q</kbd> / <kbd>Ctrl-c</kbd></td><td>Quit</td></tr>
 </table>
+<p>
+  In the theme picker, <kbd>j</kbd>/<kbd>k</kbd> or the arrow keys cycle,
+  <kbd>g</kbd>/<kbd>G</kbd> jump to the ends, <kbd>Enter</kbd> saves, and
+  <kbd>Esc</kbd>/<kbd>q</kbd> cancels. On the command line, <kbd>Esc</kbd>
+  cancels and <kbd>Ctrl-u</kbd> clears the input.
+</p>
 
 <h2 id="commands">Commands</h2>
 <p>Type them after <kbd>:</kbd> or <kbd>/</kbd>:</p>
 <table>
   <tr><th>Command</th><th>Action</th></tr>
-  <tr><td><code>:q</code></td><td>Quit</td></tr>
-  <tr><td><code>:cd &lt;path&gt;</code></td><td>Change directory</td></tr>
-  <tr><td><code>:mkdir &lt;name&gt;</code></td><td>Create directory</td></tr>
-  <tr><td><code>:touch &lt;name&gt;</code></td><td>Create file</td></tr>
-  <tr><td><code>:open</code></td><td>Open selected file</td></tr>
-  <tr><td><code>:reload</code></td><td>Reload directory</td></tr>
-  <tr><td><code>:hidden</code></td><td>Toggle hidden files</td></tr>
-  <tr><td><code>:pwd</code></td><td>Show current path</td></tr>
-  <tr><td><code>:theme &lt;name&gt;</code></td><td>Switch theme</td></tr>
-  <tr><td><code>:themes</code></td><td>List themes</td></tr>
+  <tr><td><code>:q</code>, <code>:quit</code></td><td>Quit</td></tr>
+  <tr><td><code>:cd [path]</code></td><td>Change directory (no path: home)</td></tr>
+  <tr><td><code>:mkdir &lt;path&gt;</code></td><td>Create a directory</td></tr>
+  <tr><td><code>:touch &lt;path&gt;</code></td><td>Create a file, or leave an existing file untouched</td></tr>
+  <tr><td><code>:open</code></td><td>Open the selected entry</td></tr>
+  <tr><td><code>:reload</code></td><td>Reload the current directory</td></tr>
+  <tr><td><code>:hidden</code>, <code>:toggle_hidden</code></td><td>Toggle hidden files</td></tr>
+  <tr><td><code>:pwd</code></td><td>Show the current path</td></tr>
+  <tr><td><code>:help</code></td><td>Show the key hints</td></tr>
+  <tr><td><code>:theme [name]</code></td><td>Switch theme (no name: open the picker)</td></tr>
+  <tr><td><code>:themes</code></td><td>List built-in themes</td></tr>
+  <tr><td><code>:&lt;name&gt;</code></td><td>Run a plugin command</td></tr>
 </table>
+<p>
+  Relative paths are resolved against the current directory, and a leading
+  <code>~</code> expands to your home directory.
+</p>
 
 <h2 id="editors">Editors</h2>
-<p>Text files open in the first editor found on <code>PATH</code>:</p>
+<p>Files that look like text open in the first editor found on <code>PATH</code>:</p>
 <ol>
   <li><code>nvim</code></li>
   <li><code>vim</code></li>
@@ -365,12 +390,15 @@ timeout_ms = 1500</code></pre>
 </ul>
 <p>
   Press <kbd>T</kbd> or run <code>:theme &lt;name&gt;</code> to switch. The
-  picker shows a live preview; save your pick in
-  <code>~/.config/ranger-rs/config.toml</code> to keep it.
+  picker shows a live preview; confirming a theme saves it to
+  <code>~/.config/ranger-rs/config.toml</code>.
 </p>
 
-<h2 id="plugins">Plugins (not tested yet)</h2>
-<p>Lua plugins go in <code>~/.config/ranger-rs/plugins/*.lua</code>. See <code>plugins/example.lua</code>.</p>
+<h2 id="plugins">Plugins</h2>
+<p>
+  Lua plugins go in <code>~/.config/ranger-rs/plugins/*.lua</code> and are
+  loaded at startup. See <code>plugins/example.lua</code>.
+</p>
 <pre><code>ranger.register_command("hello", function(args)
     local name = args ~= "" and args or "world"
     ranger.notify("hello " .. name .. " from " .. ranger.cwd())
@@ -385,6 +413,25 @@ ranger.register_command("newdir", function(args)
     ranger.mkdir(args)
 end)
 ranger.register_key("N", "newdir")</code></pre>
+<p>Run a registered command as <code>:hello</code>, or press its key in normal mode.</p>
+<p>Available API:</p>
+<table>
+  <tr><th>Function</th><th>Meaning</th></tr>
+  <tr><td><code>ranger.register_command(name, fn)</code></td><td>Register a command; <code>fn</code> receives the argument string</td></tr>
+  <tr><td><code>ranger.register_key(key, command)</code></td><td>Bind the first character of <code>key</code> to a command</td></tr>
+  <tr><td><code>ranger.notify(message)</code></td><td>Show a message in the status line</td></tr>
+  <tr><td><code>ranger.cd(path)</code></td><td>Change directory</td></tr>
+  <tr><td><code>ranger.quit()</code></td><td>Quit</td></tr>
+  <tr><td><code>ranger.reload()</code></td><td>Reload the current directory</td></tr>
+  <tr><td><code>ranger.toggle_hidden()</code></td><td>Toggle hidden files</td></tr>
+  <tr><td><code>ranger.mkdir(path)</code></td><td>Create a directory</td></tr>
+  <tr><td><code>ranger.touch(path)</code></td><td>Create a file if it does not exist</td></tr>
+  <tr><td><code>ranger.cwd()</code></td><td>Return the current directory</td></tr>
+</table>
+<p>
+  Commands registered by a plugin can be invoked from the command line, and keys
+  are checked after the built-in bindings.
+</p>
 
 <div id="footer">
   Content is available under the <a href="https://github.com/adiraj66132/ranger-rs/blob/master/LICENSE">MIT License</a>.
